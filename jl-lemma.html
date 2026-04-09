@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Johnson–Lindenstrauss Lemma — Interactive Explainer</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters:[
+    {left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}
+  ]});"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --teal: #39d353;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.7;
+    font-size: 16px;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  h1, h2, h3 { line-height: 1.3; }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; gap: 2rem;
+    height: 52px;
+  }
+  nav .logo { font-weight: 700; font-size: 0.9rem; color: var(--accent); letter-spacing: 0.04em; }
+  nav a { font-size: 0.85rem; color: var(--muted); transition: color .2s; }
+  nav a:hover { color: var(--text); }
+
+  /* HERO */
+  .hero {
+    text-align: center;
+    padding: 5rem 2rem 4rem;
+    background: radial-gradient(ellipse at 50% 0%, rgba(88,166,255,0.08) 0%, transparent 70%);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: rgba(88,166,255,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(88,166,255,0.3);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; margin-bottom: 1rem; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { font-size: 1.1rem; color: var(--muted); max-width: 650px; margin: 0 auto 2rem; }
+
+  /* SECTION */
+  .section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section:last-child { border-bottom: none; }
+  .section-label {
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem;
+  }
+  .section h2 { font-size: 1.8rem; font-weight: 700; margin-bottom: 1rem; }
+  .section p, .section li { color: var(--muted); margin-bottom: 0.8rem; }
+  .section strong { color: var(--text); }
+  .section ul { padding-left: 1.5rem; }
+  .section li { margin-bottom: 0.4rem; }
+
+  /* MATH BOX */
+  .math-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+  .math-box .katex-display { margin: 0; }
+
+  /* THEOREM BOX */
+  .theorem-box {
+    background: rgba(88,166,255,0.05);
+    border: 1px solid rgba(88,166,255,0.2);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .theorem-box .theorem-title {
+    font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem;
+  }
+  .theorem-box p { color: var(--text); }
+
+  /* CARDS */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+  .card h3 { font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); }
+  .card p { font-size: 0.88rem; color: var(--muted); margin: 0; }
+  .card .icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+
+  /* CANVAS CONTAINERS */
+  .viz-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+  }
+  .viz-header {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 0.5rem;
+  }
+  .viz-header h3 { font-size: 0.95rem; font-weight: 600; }
+  .viz-body { padding: 1rem; }
+  canvas { display: block; border-radius: 6px; }
+
+  /* CONTROLS */
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 1.25rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    align-items: center;
+  }
+  .ctrl-group { display: flex; flex-direction: column; gap: 0.3rem; min-width: 140px; }
+  .ctrl-group label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+  .ctrl-group .ctrl-val { font-size: 0.78rem; color: var(--accent); font-weight: 700; }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%; height: 4px; border-radius: 4px;
+    background: var(--border); outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); cursor: pointer;
+    box-shadow: 0 0 0 2px rgba(88,166,255,0.25);
+  }
+  button.btn {
+    padding: 0.45rem 1rem; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text); cursor: pointer;
+    font-size: 0.85rem; font-weight: 600; transition: all .15s;
+  }
+  button.btn:hover { background: var(--border); border-color: var(--accent); color: var(--accent); }
+  button.btn.primary { background: rgba(88,166,255,0.15); border-color: rgba(88,166,255,0.4); color: var(--accent); }
+
+  /* STAT CHIPS */
+  .stat-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 0.5rem 0; }
+  .stat-chip {
+    padding: 0.3rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface2); font-size: 0.8rem;
+  }
+  .stat-chip span { color: var(--accent); font-weight: 700; }
+
+  /* STEP WALK */
+  .step-list { counter-reset: step; display: flex; flex-direction: column; gap: 1rem; margin: 1.5rem 0; }
+  .step-item {
+    display: flex; gap: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+  }
+  .step-num {
+    counter-increment: step;
+    flex-shrink: 0;
+    width: 2rem; height: 2rem;
+    background: rgba(88,166,255,0.15);
+    border: 1px solid rgba(88,166,255,0.3);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700; color: var(--accent);
+  }
+  .step-item h4 { font-size: 0.95rem; margin-bottom: 0.3rem; }
+  .step-item p { font-size: 0.88rem; color: var(--muted); margin: 0; }
+
+  /* PROOF ACCORDION */
+  details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  summary {
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  summary::after { content: '▸'; color: var(--muted); transition: transform .2s; }
+  details[open] summary::after { transform: rotate(90deg); }
+  details .inner { padding: 0 1.25rem 1.25rem; }
+  details .inner p { font-size: 0.9rem; }
+
+  /* ANIMATION for histogram bars */
+  @keyframes barGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  .bar-animated { transform-origin: bottom; animation: barGrow 0.4s ease-out forwards; }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .controls { flex-direction: column; }
+    .ctrl-group { min-width: unset; width: 100%; }
+  }
+
+  /* CONCENTRATION VIZ */
+  #concentrationCanvas { background: var(--bg); border-radius: 6px; }
+
+  /* Highlight */
+  .highlight { color: var(--accent); }
+  .hl-green { color: var(--green); }
+  .hl-orange { color: var(--orange); }
+  .hl-red { color: var(--red); }
+  .hl-purple { color: var(--purple); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">JL Lemma</div>
+  <a href="#intuition">Intuition</a>
+  <a href="#projection">Projection</a>
+  <a href="#why">Why It Works</a>
+  <a href="#theorem">Theorem</a>
+  <a href="#demo">Interactive Demo</a>
+  <a href="#applications">Applications</a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════ HERO -->
+<div class="hero">
+  <div class="badge">Dimensionality Reduction</div>
+  <h1>Johnson–<span>Lindenstrauss</span> Lemma</h1>
+  <p>
+    You can squash high-dimensional data into far fewer dimensions
+    while <strong>almost perfectly preserving all pairwise distances</strong> —
+    using a single random matrix.
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ INTUITION -->
+<div id="intuition" class="section">
+  <div class="section-label">Section 1</div>
+  <h2>The Core Idea</h2>
+  <p>
+    Imagine you have $n$ points scattered in a very high-dimensional space — say, documents as
+    <strong>100,000-dimensional word-count vectors</strong>, or images as <strong>millions of pixels</strong>.
+    Many algorithms scale badly with dimension. Can we shrink the space?
+  </p>
+  <p>
+    Naively, projecting onto fewer dimensions <em>destroys</em> structure. But in 1984,
+    Johnson and Lindenstrauss proved something remarkable:
+  </p>
+
+  <div class="theorem-box">
+    <div class="theorem-title">Johnson–Lindenstrauss Lemma (informal)</div>
+    <p>
+      For any $\varepsilon \in (0,1)$ and any $n$ points in $\mathbb{R}^d$, there exists
+      a linear map $f: \mathbb{R}^d \to \mathbb{R}^k$ with
+      $k = O\!\left(\frac{\log n}{\varepsilon^2}\right)$
+      such that for all pairs of points $u, v$:
+    </p>
+    <div class="math-box">
+      $$(1-\varepsilon)\|u - v\|^2 \;\leq\; \|f(u) - f(v)\|^2 \;\leq\; (1+\varepsilon)\|u - v\|^2$$
+    </div>
+    <p>
+      <strong>The target dimension $k$ depends only on $\log n$ and $\varepsilon$ — not on the original dimension $d$!</strong>
+    </p>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="icon">📐</div>
+      <h3>Distance Preserving</h3>
+      <p>All $\binom{n}{2}$ pairwise distances are preserved within a factor of $(1 \pm \varepsilon)$.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🎲</div>
+      <h3>Randomized</h3>
+      <p>The projection is a <em>random</em> Gaussian matrix — no need to look at the data to construct it!</p>
+    </div>
+    <div class="card">
+      <div class="icon">📦</div>
+      <h3>Dimension-Independent</h3>
+      <p>The target dimension $k \approx \frac{8 \ln n}{\varepsilon^2}$ doesn't depend on the original $d$.</p>
+    </div>
+    <div class="card">
+      <div class="icon">⚡</div>
+      <h3>Efficient</h3>
+      <p>Constructing and applying the projection takes $O(dk)$ time — fast in practice.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ PROJECTION ANIMATION -->
+<div id="projection" class="section">
+  <div class="section-label">Section 2</div>
+  <h2>Visualizing a Random Projection</h2>
+  <p>
+    The projection $f$ maps each point $x \in \mathbb{R}^d$ to $f(x) = \frac{1}{\sqrt{k}} R x$,
+    where $R$ is a $k \times d$ matrix with entries $R_{ij} \sim \mathcal{N}(0,1)$.
+  </p>
+  <p>
+    Below, watch 2D points get projected onto a 1D line — a random unit vector.
+    Hover over points to see their original and projected positions.
+    Notice how nearby points stay nearby, and far points stay far.
+  </p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>2D → 1D Projection Animation</h3>
+      <div style="display:flex;gap:.5rem;">
+        <button class="btn primary" id="reproject2d">New Random Projection</button>
+        <button class="btn" id="newPoints2d">New Points</button>
+      </div>
+    </div>
+    <div class="viz-body" style="display:flex;gap:1rem;flex-wrap:wrap;">
+      <canvas id="proj2dCanvas" width="400" height="360"></canvas>
+      <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:0.75rem;justify-content:center;padding:0.5rem 0;">
+        <div>
+          <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;">Projection direction</div>
+          <div id="projDirDisplay" style="font-size:0.82rem;color:var(--muted);font-family:monospace;"></div>
+        </div>
+        <div>
+          <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;">Distance ratios</div>
+          <canvas id="ratioBarCanvas" width="220" height="140"></canvas>
+        </div>
+        <div id="ratioStats" class="stat-row"></div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top:1rem;">
+    The <span class="highlight">orange dashed lines</span> show the projection of each point onto the
+    random direction. Points projected onto the line form the <strong>embedded representation</strong>.
+    The <span class="hl-green">green bars</span> show how distance ratios
+    (projected / original) are distributed — they cluster tightly around 1 when the projection is good.
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ WHY IT WORKS -->
+<div id="why" class="section">
+  <div class="section-label">Section 3</div>
+  <h2>Why Random Projections Work</h2>
+  <p>
+    The magic comes from two key ideas: <strong>concentration of measure</strong> and
+    the <strong>union bound</strong>. Let's build up the intuition.
+  </p>
+
+  <h3 style="margin:1.5rem 0 0.5rem;font-size:1.2rem;">3.1 — A single dot product concentrates</h3>
+  <p>
+    Fix a unit vector $u \in \mathbb{R}^d$. Project it onto a random unit vector $r$:
+    the result $\langle r, u \rangle$ is a random variable.
+  </p>
+  <p>
+    When we use $k$ random projections, we get:
+  </p>
+  <div class="math-box">
+    $$\|f(u)\|^2 = \frac{1}{k}\sum_{i=1}^{k} \langle r_i, u \rangle^2$$
+  </div>
+  <p>
+    Each $\langle r_i, u \rangle \sim \mathcal{N}(0, 1)$ (if $r_i$ has Gaussian entries),
+    so each term is $\chi^2(1)$ distributed with mean 1.
+    By the <strong>law of large numbers</strong>, the average concentrates around 1.
+    The concentration is exponentially fast — this is the key!
+  </p>
+
+  <p><strong>Interact with the widget below</strong> to see how the distribution of $\|f(u)\|^2$ concentrates around 1 as $k$ grows:</p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>Concentration of $\|f(u)\|^2$ around 1</h3>
+      <span style="font-size:0.8rem;color:var(--muted);">Histogram over 2000 random projections</span>
+    </div>
+    <div class="viz-body">
+      <canvas id="concentrationCanvas" width="820" height="280"></canvas>
+    </div>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Projection dimension $k$ <span class="ctrl-val" id="kConcentVal">5</span></label>
+        <input type="range" id="kConcentSlider" min="1" max="50" value="5">
+      </div>
+      <div class="ctrl-group">
+        <label>Original dimension $d$ <span class="ctrl-val" id="dConcentVal">100</span></label>
+        <input type="range" id="dConcentSlider" min="10" max="500" step="10" value="100">
+      </div>
+      <div class="ctrl-group">
+        <label>$\varepsilon$ bound <span class="ctrl-val" id="epsConcentVal">0.3</span></label>
+        <input type="range" id="epsConcentSlider" min="0.05" max="0.8" step="0.05" value="0.3">
+      </div>
+      <div id="concentStats" class="stat-row" style="align-self:flex-end;"></div>
+    </div>
+  </div>
+
+  <h3 style="margin:1.5rem 0 0.5rem;font-size:1.2rem;">3.2 — Union bound over all pairs</h3>
+  <p>
+    We need the projection to preserve <em>all</em> $\binom{n}{2}$ pairwise distances simultaneously.
+    By the <strong>union bound</strong>, the probability that <em>any</em> pair fails is at most:
+  </p>
+  <div class="math-box">
+    $$P[\text{some pair fails}] \leq \binom{n}{2} \cdot P[\text{one pair fails}] \leq n^2 \cdot e^{-c \varepsilon^2 k}$$
+  </div>
+  <p>
+    Setting $k = \frac{C \log n}{\varepsilon^2}$ makes this probability less than 1 (or any constant $\delta$).
+    So a random projection of this dimension works with positive probability — hence it exists!
+  </p>
+
+  <div class="step-list">
+    <div class="step-item">
+      <div class="step-num">1</div>
+      <div>
+        <h4>Gaussian entries concentrate</h4>
+        <p>Each $\langle r_i, u - v\rangle^2$ is a $\chi^2$ variable. The sum of $k$ such terms
+        concentrates around $k \|u-v\|^2$ with exponential tails.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">2</div>
+      <div>
+        <h4>Sub-gaussian tail bound</h4>
+        <p>$P\!\left[\left|\frac{\|f(u-v)\|^2}{\|u-v\|^2} - 1\right| > \varepsilon\right] \leq 2e^{-(\varepsilon^2 - \varepsilon^3)k/4}$</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">3</div>
+      <div>
+        <h4>Union over $\binom{n}{2}$ pairs</h4>
+        <p>Multiply failure probability by $n^2$. Choose $k = \frac{8 \ln n}{\varepsilon^2}$
+        to make total failure probability $&lt; \frac{1}{2}$.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">4</div>
+      <div>
+        <h4>Probabilistic argument</h4>
+        <p>Since failure probability $&lt; 1$, a good projection must exist.
+        In practice, a random one works with high probability.</p>
+      </div>
+    </div>
+  </div>
+
+  <details>
+    <summary>Sketch of the tail bound proof</summary>
+    <div class="inner">
+      <p>
+        Let $X = \sum_{i=1}^k Z_i^2$ where $Z_i \sim \mathcal{N}(0,1)$ i.i.d. We want to bound
+        $P[|X/k - 1| > \varepsilon]$. Using the moment generating function of $\chi^2$:
+      </p>
+      <div class="math-box">
+        $$M_{Z^2}(t) = \mathbb{E}[e^{tZ^2}] = (1-2t)^{-1/2} \quad \text{for } t < \tfrac{1}{2}$$
+      </div>
+      <p>So $M_X(t) = (1-2t)^{-k/2}$. Using Markov's inequality on $e^{tX}$:</p>
+      <div class="math-box">
+        $$P[X \geq (1+\varepsilon)k] \leq \frac{e^{-t(1+\varepsilon)k}}{(1-2t)^{-k/2}}$$
+      </div>
+      <p>
+        Optimizing over $t \in (0, \tfrac{1}{2})$ gives $t = \frac{\varepsilon}{2(1+\varepsilon)}$,
+        and after simplification:
+      </p>
+      <div class="math-box">
+        $$P[X \geq (1+\varepsilon)k] \leq \left(\frac{e^\varepsilon}{(1+\varepsilon)^{1+\varepsilon}}\right)^{k/2} \leq e^{-(\varepsilon^2-\varepsilon^3)k/4}$$
+      </div>
+      <p>A symmetric bound holds for $P[X \leq (1-\varepsilon)k]$, completing the proof.</p>
+    </div>
+  </details>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ FORMAL THEOREM -->
+<div id="theorem" class="section">
+  <div class="section-label">Section 4</div>
+  <h2>The Formal Statement</h2>
+
+  <div class="theorem-box">
+    <div class="theorem-title">Theorem (Johnson–Lindenstrauss, 1984)</div>
+    <p>
+      Let $\varepsilon \in (0,1)$, $\delta \in (0,1)$, and let $X = \{x_1, \ldots, x_n\} \subset \mathbb{R}^d$.
+      Choose $k \geq \frac{8 \ln(n/\delta)}{\varepsilon^2}$.
+      Let $R \in \mathbb{R}^{k \times d}$ have i.i.d. $\mathcal{N}(0,1)$ entries, and define
+      $f(x) = \frac{1}{\sqrt{k}} R x$.
+    </p>
+    <p style="margin-top:.75rem;">
+      Then with probability at least $1 - \delta$, for <em>all</em> pairs $i \neq j$:
+    </p>
+    <div class="math-box">
+      $$(1-\varepsilon)\|x_i - x_j\|^2 \leq \|f(x_i) - f(x_j)\|^2 \leq (1+\varepsilon)\|x_i - x_j\|^2$$
+    </div>
+  </div>
+
+  <h3 style="margin:1.5rem 0 0.5rem;font-size:1.2rem;">Required Dimension</h3>
+  <p>The minimum $k$ needed grows as:</p>
+  <div class="math-box">
+    $$k = O\!\left(\frac{\log n}{\varepsilon^2}\right)$$
+  </div>
+  <p>
+    This is <strong>independent of $d$</strong>! A billion-dimensional space with 1000 points
+    can be reduced to roughly $k \approx 700$ dimensions (for $\varepsilon = 0.1$) with no loss of
+    geometric structure.
+  </p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>Required target dimension $k$ vs. parameters</h3>
+    </div>
+    <div class="viz-body">
+      <canvas id="kPlotCanvas" width="820" height="240"></canvas>
+    </div>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Failure prob. $\delta$ <span class="ctrl-val" id="deltaKVal">0.01</span></label>
+        <input type="range" id="deltaKSlider" min="0.001" max="0.2" step="0.001" value="0.01">
+      </div>
+      <div class="ctrl-group">
+        <label>Accuracy $\varepsilon$ <span class="ctrl-val" id="epsKVal">0.1</span></label>
+        <input type="range" id="epsKSlider" min="0.05" max="0.5" step="0.01" value="0.1">
+      </div>
+      <div id="kPlotInfo" style="font-size:0.82rem;color:var(--muted);padding:0.25rem 0;align-self:flex-end;"></div>
+    </div>
+  </div>
+
+  <p>
+    Notice: even for $n = 10^6$ points with $\varepsilon = 0.1$ and $\delta = 0.01$,
+    the required dimension is only $k \approx \frac{8 \cdot 14}{0.01} \approx 11{,}200$.
+    This is tiny compared to typical $d = 10^6$ image/text embeddings!
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ INTERACTIVE DEMO -->
+<div id="demo" class="section">
+  <div class="section-label">Section 5</div>
+  <h2>Interactive Demo: High-Dimensional Projection</h2>
+  <p>
+    Generate random points in $\mathbb{R}^d$, project them to $\mathbb{R}^k$, and
+    measure how well distances are preserved. Adjust parameters and see the effect in real time.
+  </p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>Distance Preservation Under Random Projection</h3>
+      <button class="btn primary" id="runDemo">Run New Experiment</button>
+    </div>
+    <div class="viz-body" style="display:flex;gap:1rem;flex-wrap:wrap;">
+      <div style="flex:1;min-width:300px;">
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.4rem;text-align:center;">
+          Distance ratio histogram (projected / original)
+        </div>
+        <canvas id="demoHistCanvas" width="380" height="260"></canvas>
+      </div>
+      <div style="flex:1;min-width:300px;">
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.4rem;text-align:center;">
+          Original vs. projected distances (scatter)
+        </div>
+        <canvas id="demoScatterCanvas" width="380" height="260"></canvas>
+      </div>
+    </div>
+    <div id="demoStats" style="padding:0.75rem 1.25rem;display:flex;flex-wrap:wrap;gap:0.75rem;border-top:1px solid var(--border);"></div>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Points $n$ <span class="ctrl-val" id="demNVal">50</span></label>
+        <input type="range" id="demNSlider" min="10" max="200" step="5" value="50">
+      </div>
+      <div class="ctrl-group">
+        <label>Original dim $d$ <span class="ctrl-val" id="demDVal">100</span></label>
+        <input type="range" id="demDSlider" min="5" max="500" step="5" value="100">
+      </div>
+      <div class="ctrl-group">
+        <label>Target dim $k$ <span class="ctrl-val" id="demKVal">10</span></label>
+        <input type="range" id="demKSlider" min="1" max="100" step="1" value="10">
+      </div>
+      <div class="ctrl-group">
+        <label>Accuracy $\varepsilon$ <span class="ctrl-val" id="demEpsVal">0.3</span></label>
+        <input type="range" id="demEpsSlider" min="0.05" max="0.9" step="0.05" value="0.3">
+      </div>
+    </div>
+  </div>
+
+  <p>
+    The <span class="hl-green">green region</span> in the histogram marks ratios within $(1 \pm \varepsilon)$.
+    Watch how increasing $k$ (or decreasing $n$) pushes nearly all pairs into the green zone.
+    The scatter plot shows original vs. projected distances — a perfect line at slope 1 means exact preservation.
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ TIGHTNESS -->
+<div class="section">
+  <div class="section-label">Section 6</div>
+  <h2>Is the Bound Tight?</h2>
+  <p>
+    Yes! Alon (2003) showed that the dependence on $\log n$ is <strong>optimal</strong>:
+    there exist $n$-point sets where any embedding with distortion $(1+\varepsilon)$ requires
+    $k = \Omega\!\left(\frac{\log n}{\varepsilon^2 \log(1/\varepsilon)}\right)$ dimensions.
+  </p>
+  <p>
+    The $1/\varepsilon^2$ factor is also essentially tight — you cannot get away with fewer
+    dimensions and still preserve all distances within $\varepsilon$.
+  </p>
+
+  <h3 style="margin:1.5rem 0 0.5rem;font-size:1.2rem;">Variants and Improvements</h3>
+  <div class="cards">
+    <div class="card">
+      <h3>Fast JL (Ailon & Chazelle)</h3>
+      <p>Replace dense Gaussian matrix with $\text{HD}$ (Hadamard + random signs). Runtime: $O(d \log d)$ vs $O(dk)$.</p>
+    </div>
+    <div class="card">
+      <h3>Sparse JL</h3>
+      <p>Use sparse random matrices (Achlioptas 2003, Kane-Nelson 2014) — most entries zero, faster to apply.</p>
+    </div>
+    <div class="card">
+      <h3>Oblivious Subspace Embeddings</h3>
+      <p>Generalization: preserve all vectors in a subspace, not just a finite set.</p>
+    </div>
+    <div class="card">
+      <h3>Randomized SVD</h3>
+      <p>Use JL as subroutine for fast approximate SVD / PCA on large matrices.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ APPLICATIONS -->
+<div id="applications" class="section">
+  <div class="section-label">Section 7</div>
+  <h2>Applications</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="icon">🔍</div>
+      <h3>Approximate Nearest Neighbors</h3>
+      <p>Project to $k \approx O(\log n)$ dims, run exact NN search there. Used in FAISS, Annoy, HNSW.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🧮</div>
+      <h3>Compressed Sensing</h3>
+      <p>Random projections form nearly-isometric embeddings needed for exact sparse recovery (RIP property).</p>
+    </div>
+    <div class="card">
+      <div class="icon">📊</div>
+      <h3>Clustering & Classification</h3>
+      <p>Speed up $k$-means, SVMs, linear regression by reducing dimension while preserving structure.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🔐</div>
+      <h3>Privacy / Sketching</h3>
+      <p>Random projections can obfuscate original data while preserving statistics — used in differential privacy.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🤖</div>
+      <h3>Neural Networks</h3>
+      <p>Random projection layers, random feature approximations (Rahimi–Recht), kernel methods.</p>
+    </div>
+    <div class="card">
+      <div class="icon">📝</div>
+      <h3>NLP / Text Search</h3>
+      <p>Random indexing, LSH for document similarity, faster transformers with random attention.</p>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:3rem 2rem;color:var(--muted);font-size:0.85rem;border-top:1px solid var(--border);">
+  Johnson & Lindenstrauss, "Extensions of Lipschitz mappings into a Hilbert space" (1984).
+  Interactive visualization built with vanilla JavaScript &amp; Canvas.
+</div>
+
+<script>
+/* ──────────────────────────────────────────────────────────────────────────
+   UTILITY FUNCTIONS
+────────────────────────────────────────────────────────────────────────── */
+const randn = () => {
+  let u = 0, v = 0;
+  while (!u) u = Math.random();
+  while (!v) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+};
+
+const randUnit2D = () => {
+  const a = Math.random() * 2 * Math.PI;
+  return [Math.cos(a), Math.sin(a)];
+};
+
+const dot = (a, b) => a.reduce((s, x, i) => s + x * b[i], 0);
+const norm = v => Math.sqrt(dot(v, v));
+const dist = (a, b) => norm(a.map((x, i) => x - b[i]));
+
+// Generate n random Gaussian points in R^d
+const genPoints = (n, d) => Array.from({length: n}, () => Array.from({length: d}, randn));
+
+// Random projection matrix k×d
+const randProjMatrix = (k, d) => Array.from({length: k}, () => Array.from({length: d}, randn));
+
+// Project all points: x -> (1/sqrt(k)) R x
+const projectPoints = (pts, R) => {
+  const k = R.length;
+  return pts.map(x => R.map(r => dot(r, x) / Math.sqrt(k)));
+};
+
+// All pairwise distances (upper triangle)
+const pairDists = pts => {
+  const dists = [];
+  for (let i = 0; i < pts.length; i++)
+    for (let j = i+1; j < pts.length; j++)
+      dists.push(dist(pts[i], pts[j]));
+  return dists;
+};
+
+/* ──────────────────────────────────────────────────────────────────────────
+   COLORS
+────────────────────────────────────────────────────────────────────────── */
+const C = {
+  bg: '#0d1117', surface: '#161b22', surface2: '#21262d', border: '#30363d',
+  text: '#e6edf3', muted: '#8b949e',
+  accent: '#58a6ff', green: '#3fb950', orange: '#d29922', red: '#f85149', purple: '#bc8cff',
+};
+
+const hexToRgba = (hex, a) => {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+};
+
+const ctx = id => document.getElementById(id).getContext('2d');
+
+/* ──────────────────────────────────────────────────────────────────────────
+   CANVAS HELPERS
+────────────────────────────────────────────────────────────────────────── */
+function clearCanvas(c, col = C.bg) {
+  c.fillStyle = col;
+  c.fillRect(0, 0, c.canvas.width, c.canvas.height);
+}
+
+function drawAxes(c, x0, y0, w, h, xLabel='', yLabel='') {
+  c.strokeStyle = C.border; c.lineWidth = 1;
+  c.beginPath();
+  c.moveTo(x0, y0); c.lineTo(x0+w, y0);
+  c.moveTo(x0, y0); c.lineTo(x0, y0-h);
+  c.stroke();
+  if (xLabel) { c.fillStyle = C.muted; c.font='11px sans-serif'; c.textAlign='center'; c.fillText(xLabel, x0+w/2, y0+18); }
+  if (yLabel) { c.save(); c.translate(x0-28, y0-h/2); c.rotate(-Math.PI/2); c.fillStyle=C.muted; c.font='11px sans-serif'; c.textAlign='center'; c.fillText(yLabel,0,0); c.restore(); }
+}
+
+function drawHistogram(c, data, {x0, y0, w, h, bins=30, minV, maxV, color=C.accent, greenLo, greenHi, label='', xLabel=''}) {
+  minV = minV ?? Math.min(...data);
+  maxV = maxV ?? Math.max(...data);
+  const binW = (maxV - minV) / bins;
+  const counts = new Array(bins).fill(0);
+  data.forEach(v => {
+    const b = Math.min(bins-1, Math.floor((v - minV) / binW));
+    if (b >= 0) counts[b]++;
+  });
+  const maxCount = Math.max(...counts) || 1;
+
+  // Green zone
+  if (greenLo !== undefined && greenHi !== undefined) {
+    const gx1 = x0 + (greenLo - minV) / (maxV - minV) * w;
+    const gx2 = x0 + (greenHi - minV) / (maxV - minV) * w;
+    c.fillStyle = hexToRgba(C.green, 0.1);
+    c.fillRect(Math.max(x0, gx1), y0-h, Math.min(x0+w, gx2)-Math.max(x0, gx1), h);
+    c.strokeStyle = hexToRgba(C.green, 0.25); c.lineWidth = 1;
+    c.beginPath();
+    if (gx1 >= x0) { c.moveTo(gx1, y0); c.lineTo(gx1, y0-h); }
+    if (gx2 <= x0+w) { c.moveTo(gx2, y0); c.lineTo(gx2, y0-h); }
+    c.stroke();
+  }
+
+  // Bars
+  const bw = w / bins;
+  counts.forEach((cnt, i) => {
+    const bh = (cnt / maxCount) * h;
+    const bx = x0 + i * bw;
+    const inGreen = greenLo !== undefined && greenHi !== undefined &&
+      minV + (i+0.5)*binW >= greenLo && minV + (i+0.5)*binW <= greenHi;
+    c.fillStyle = inGreen ? hexToRgba(C.green, 0.8) : hexToRgba(color, 0.75);
+    c.fillRect(bx+1, y0-bh, bw-2, bh);
+  });
+
+  drawAxes(c, x0, y0, w, h, xLabel);
+
+  // Tick labels
+  c.fillStyle = C.muted; c.font = '10px sans-serif'; c.textAlign = 'center';
+  for (let i = 0; i <= 4; i++) {
+    const v = minV + i*(maxV-minV)/4;
+    c.fillText(v.toFixed(2), x0 + i*w/4, y0+12);
+  }
+
+  // Vertical line at 1.0
+  if (minV < 1 && maxV > 1) {
+    const lx = x0 + (1 - minV) / (maxV - minV) * w;
+    c.strokeStyle = hexToRgba(C.orange, 0.8); c.lineWidth = 1.5;
+    c.setLineDash([4,3]);
+    c.beginPath(); c.moveTo(lx, y0); c.lineTo(lx, y0-h); c.stroke();
+    c.setLineDash([]);
+    c.fillStyle = C.orange; c.font = '10px sans-serif'; c.textAlign = 'center';
+    c.fillText('1.0', lx, y0-h-4);
+  }
+
+  if (label) { c.fillStyle = C.muted; c.font='11px sans-serif'; c.textAlign='left'; c.fillText(label, x0, y0-h-8); }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   VIZ 1: 2D → 1D PROJECTION
+────────────────────────────────────────────────────────────────────────── */
+let pts2d, projDir, animFrame2d;
+
+function gen2DPoints() {
+  pts2d = Array.from({length: 18}, () => [(Math.random()-0.5)*2.8, (Math.random()-0.5)*2.8]);
+  projDir = randUnit2D();
+  draw2DProjection();
+}
+
+function newProjection2D() {
+  projDir = randUnit2D();
+  draw2DProjection();
+}
+
+function draw2DProjection() {
+  const cv = document.getElementById('proj2dCanvas');
+  const c = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const cx = W/2, cy = H/2, sc = 60;
+
+  clearCanvas(c, C.surface);
+
+  // Grid
+  c.strokeStyle = hexToRgba(C.border, 0.5); c.lineWidth = 1;
+  for (let i = -4; i <= 4; i++) {
+    c.beginPath(); c.moveTo(cx+i*sc, 20); c.lineTo(cx+i*sc, H-20); c.stroke();
+    c.beginPath(); c.moveTo(20, cy+i*sc); c.lineTo(W-20, cy+i*sc); c.stroke();
+  }
+
+  // Axes
+  c.strokeStyle = C.border; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(20, cy); c.lineTo(W-20, cy); c.stroke();
+  c.beginPath(); c.moveTo(cx, 20); c.lineTo(cx, H-20); c.stroke();
+
+  // Projection line (dashed)
+  const len = 200;
+  c.strokeStyle = hexToRgba(C.purple, 0.5); c.lineWidth = 1.5; c.setLineDash([5,4]);
+  c.beginPath();
+  c.moveTo(cx - projDir[0]*len, cy - projDir[1]*len);
+  c.lineTo(cx + projDir[0]*len, cy + projDir[1]*len);
+  c.stroke(); c.setLineDash([]);
+
+  // Direction arrow
+  c.strokeStyle = C.purple; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx+projDir[0]*55, cy-projDir[1]*55); c.stroke();
+  c.fillStyle = C.purple; c.font='11px sans-serif'; c.textAlign='left';
+  c.fillText('r', cx+projDir[0]*60+4, cy-projDir[1]*60+4);
+
+  // Points and their projections
+  const colors = ['#58a6ff','#3fb950','#f97316','#a78bfa','#fb7185','#34d399','#fbbf24','#60a5fa'];
+  pts2d.forEach((p, i) => {
+    const px = cx + p[0]*sc, py = cy - p[1]*sc;
+    // Project: (p · r) * r
+    const scalar = dot(p, projDir);
+    const projP = [scalar * projDir[0], scalar * projDir[1]];
+    const ppx = cx + projP[0]*sc, ppy = cy - projP[1]*sc;
+
+    // Dashed line to projection
+    c.strokeStyle = hexToRgba(C.orange, 0.4); c.lineWidth = 1; c.setLineDash([3,3]);
+    c.beginPath(); c.moveTo(px, py); c.lineTo(ppx, ppy); c.stroke(); c.setLineDash([]);
+
+    // Projected point on line
+    c.fillStyle = hexToRgba(colors[i%colors.length], 0.5);
+    c.beginPath(); c.arc(ppx, ppy, 4, 0, Math.PI*2); c.fill();
+
+    // Original point
+    c.fillStyle = colors[i%colors.length];
+    c.beginPath(); c.arc(px, py, 6, 0, Math.PI*2); c.fill();
+    c.strokeStyle = hexToRgba('#fff', 0.1); c.lineWidth=1;
+    c.stroke();
+  });
+
+  // Label
+  c.fillStyle = C.muted; c.font='11px sans-serif'; c.textAlign='left';
+  c.fillText('2D space', 10, 18);
+
+  // Update direction display
+  document.getElementById('projDirDisplay').textContent =
+    `r = [${projDir[0].toFixed(3)}, ${projDir[1].toFixed(3)}]`;
+
+  // Update ratio bar
+  drawRatioBars();
+}
+
+function drawRatioBars() {
+  const cv = document.getElementById('ratioBarCanvas');
+  const c = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  clearCanvas(c, C.surface);
+
+  const scalars = pts2d.map(p => Math.abs(dot(p, projDir)));
+  const origDists = [], projDists1D = [];
+  for (let i = 0; i < pts2d.length; i++)
+    for (let j = i+1; j < pts2d.length; j++) {
+      origDists.push(dist(pts2d[i], pts2d[j]));
+      projDists1D.push(Math.abs(dot(pts2d[i], projDir) - dot(pts2d[j], projDir)));
+    }
+  const ratios = origDists.map((d,i) => d > 0.01 ? projDists1D[i]/d : 1);
+
+  const minR = Math.max(0, Math.min(...ratios) - 0.1);
+  const maxR = Math.max(...ratios) + 0.1;
+  drawHistogram(c, ratios, {x0:30, y0:H-25, w:W-40, h:H-50, bins:15,
+    minV:minR, maxV:maxR, color:C.accent,
+    greenLo:0.7, greenHi:1.3, xLabel:'ratio'});
+  c.fillStyle=C.muted; c.font='10px sans-serif'; c.textAlign='left';
+  c.fillText('Distance ratios (proj/orig)', 30, 10);
+
+  const good = ratios.filter(r => r >= 0.7 && r <= 1.3).length;
+  const pct = (good/ratios.length*100).toFixed(0);
+  document.getElementById('ratioStats').innerHTML =
+    `<div class="stat-chip">Pairs: <span>${ratios.length}</span></div>
+     <div class="stat-chip">Within 30%: <span>${pct}%</span></div>
+     <div class="stat-chip">Mean ratio: <span>${(ratios.reduce((a,b)=>a+b,0)/ratios.length).toFixed(3)}</span></div>`;
+}
+
+document.getElementById('reproject2d').onclick = newProjection2D;
+document.getElementById('newPoints2d').onclick = gen2DPoints;
+
+/* ──────────────────────────────────────────────────────────────────────────
+   VIZ 2: CONCENTRATION
+────────────────────────────────────────────────────────────────────────── */
+function drawConcentration() {
+  const k = parseInt(document.getElementById('kConcentSlider').value);
+  const d = parseInt(document.getElementById('dConcentSlider').value);
+  const eps = parseFloat(document.getElementById('epsConcentSlider').value);
+  document.getElementById('kConcentVal').textContent = k;
+  document.getElementById('dConcentVal').textContent = d;
+  document.getElementById('epsConcentVal').textContent = eps.toFixed(2);
+
+  // Generate 2000 random projection norms
+  const N = 2000;
+  const u = Array.from({length:d}, randn);
+  const uLen = norm(u);
+  const uNorm = u.map(x => x/uLen); // unit vector
+
+  const norms = [];
+  for (let t = 0; t < N; t++) {
+    // Project u onto k random Gaussian directions, compute ||f(u)||^2 / ||u||^2
+    let sumSq = 0;
+    for (let i = 0; i < k; i++) {
+      let dp = 0;
+      for (let j = 0; j < d; j++) dp += randn() * uNorm[j];
+      sumSq += dp * dp;
+    }
+    norms.push(sumSq / k);
+  }
+
+  const cv = document.getElementById('concentrationCanvas');
+  const c = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  clearCanvas(c, C.surface);
+
+  const minV = Math.max(0, 1 - 2*eps - 0.05);
+  const maxV = 1 + 2*eps + 0.05;
+
+  drawHistogram(c, norms, {
+    x0: 50, y0: H-35, w: W-80, h: H-60,
+    bins: 60, minV, maxV,
+    color: C.accent,
+    greenLo: 1-eps, greenHi: 1+eps,
+    xLabel: '||f(u)||² / ||u||²'
+  });
+
+  // Title
+  c.fillStyle = C.text; c.font='bold 12px sans-serif'; c.textAlign='left';
+  c.fillText(`k=${k} projections  →  distribution of ||f(u)||²`, 50, 20);
+
+  const good = norms.filter(r => r >= 1-eps && r <= 1+eps).length;
+  const pct = (good/N*100).toFixed(1);
+  const std = Math.sqrt(norms.map(r=>(r-1)**2).reduce((a,b)=>a+b)/N);
+
+  // Theoretical std: sqrt(2/k)
+  const theoStd = Math.sqrt(2/k);
+
+  document.getElementById('concentStats').innerHTML =
+    `<div class="stat-chip">Within (1±ε): <span>${pct}%</span></div>
+     <div class="stat-chip">Empirical σ: <span>${std.toFixed(4)}</span></div>
+     <div class="stat-chip">Theory σ ≈ √(2/k): <span>${theoStd.toFixed(4)}</span></div>`;
+}
+
+['kConcentSlider','dConcentSlider','epsConcentSlider'].forEach(id => {
+  document.getElementById(id).addEventListener('input', drawConcentration);
+});
+
+/* ──────────────────────────────────────────────────────────────────────────
+   VIZ 3: k PLOT
+────────────────────────────────────────────────────────────────────────── */
+function drawKPlot() {
+  const delta = parseFloat(document.getElementById('deltaKSlider').value);
+  const eps = parseFloat(document.getElementById('epsKSlider').value);
+  document.getElementById('deltaKVal').textContent = delta.toFixed(3);
+  document.getElementById('epsKVal').textContent = eps.toFixed(2);
+
+  const cv = document.getElementById('kPlotCanvas');
+  const c = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  clearCanvas(c, C.surface);
+
+  const x0 = 60, y0 = H-40, w = W-80, h = H-60;
+
+  // k(n) = ceil(8 * ln(n/delta) / eps^2)
+  const nValues = [];
+  for (let logN = 1; logN <= 7; logN += 0.05)
+    nValues.push(Math.pow(10, logN));
+
+  const kValues = nValues.map(n => Math.ceil(8 * Math.log(n/delta) / (eps*eps)));
+
+  const maxK = Math.max(...kValues);
+  const minN = nValues[0], maxN = nValues[nValues.length-1];
+
+  drawAxes(c, x0, y0, w, h, 'n (number of points, log scale)', 'k (target dimension)');
+
+  // Grid lines
+  c.strokeStyle = hexToRgba(C.border, 0.4); c.lineWidth = 0.5;
+  for (let i = 0; i <= 5; i++) {
+    const ky = y0 - i/5 * h;
+    const kv = Math.round(i/5 * maxK);
+    c.beginPath(); c.moveTo(x0, ky); c.lineTo(x0+w, ky); c.stroke();
+    c.fillStyle = C.muted; c.font='10px sans-serif'; c.textAlign='right';
+    c.fillText(kv, x0-5, ky+3);
+  }
+
+  // X-axis ticks (log)
+  [10,100,1000,10000,100000,1000000,10000000].forEach(n => {
+    const xp = x0 + Math.log10(n/minN)/Math.log10(maxN/minN) * w;
+    if (xp >= x0 && xp <= x0+w) {
+      c.fillStyle = C.muted; c.font='10px sans-serif'; c.textAlign='center';
+      c.fillText(n >= 1e6 ? `${n/1e6}M` : n >= 1e3 ? `${n/1e3}K` : n, xp, y0+14);
+      c.strokeStyle = hexToRgba(C.border, 0.3); c.lineWidth=0.5;
+      c.beginPath(); c.moveTo(xp, y0); c.lineTo(xp, y0-h); c.stroke();
+    }
+  });
+
+  // Main curve
+  c.strokeStyle = C.accent; c.lineWidth = 2.5;
+  c.beginPath();
+  nValues.forEach((n, i) => {
+    const xp = x0 + Math.log10(n/minN)/Math.log10(maxN/minN) * w;
+    const yp = y0 - kValues[i]/maxK * h;
+    if (i === 0) c.moveTo(xp, yp); else c.lineTo(xp, yp);
+  });
+  c.stroke();
+
+  // Fill under curve
+  c.fillStyle = hexToRgba(C.accent, 0.08);
+  c.beginPath();
+  nValues.forEach((n, i) => {
+    const xp = x0 + Math.log10(n/minN)/Math.log10(maxN/minN) * w;
+    const yp = y0 - kValues[i]/maxK * h;
+    if (i === 0) c.moveTo(xp, y0); else {}
+    c.lineTo(xp, yp);
+  });
+  c.lineTo(x0+w, y0); c.closePath(); c.fill();
+
+  // Annotation: n=1M
+  const n1M = 1e6;
+  const k1M = Math.ceil(8 * Math.log(n1M/delta) / (eps*eps));
+  const xp1M = x0 + Math.log10(n1M/minN)/Math.log10(maxN/minN) * w;
+  const yp1M = y0 - k1M/maxK * h;
+  c.fillStyle = C.orange;
+  c.beginPath(); c.arc(xp1M, yp1M, 5, 0, Math.PI*2); c.fill();
+  c.fillStyle = C.orange; c.font='11px sans-serif'; c.textAlign='left';
+  c.fillText(`n=1M → k=${k1M}`, xp1M+8, yp1M-4);
+
+  document.getElementById('kPlotInfo').textContent =
+    `k = ⌈8 ln(n/${delta.toFixed(3)}) / ${eps.toFixed(2)}²⌉  —  at n=1M: k=${k1M}`;
+}
+
+['deltaKSlider','epsKSlider'].forEach(id => {
+  document.getElementById(id).addEventListener('input', drawKPlot);
+});
+
+/* ──────────────────────────────────────────────────────────────────────────
+   VIZ 4: INTERACTIVE DEMO
+────────────────────────────────────────────────────────────────────────── */
+function runDemoExperiment() {
+  const n = parseInt(document.getElementById('demNSlider').value);
+  const d = parseInt(document.getElementById('demDSlider').value);
+  const k = parseInt(document.getElementById('demKSlider').value);
+  const eps = parseFloat(document.getElementById('demEpsSlider').value);
+
+  document.getElementById('demNVal').textContent = n;
+  document.getElementById('demDVal').textContent = d;
+  document.getElementById('demKVal').textContent = k;
+  document.getElementById('demEpsVal').textContent = eps.toFixed(2);
+
+  // JL bound
+  const kJL = Math.ceil(8 * Math.log(n) / (eps*eps));
+
+  const pts = genPoints(n, d);
+  const R = randProjMatrix(k, d);
+  const projPts = projectPoints(pts, R);
+
+  const origDists = pairDists(pts);
+  const projDists = pairDists(projPts);
+
+  // Ratios: ||f(u-v)||^2 / ||u-v||^2 (but we compare L2 not squared)
+  const ratios = origDists.map((od, i) => od > 1e-10 ? (projDists[i]/od) : 1);
+
+  // Stats
+  const good = ratios.filter(r => r >= (1-eps) && r <= (1+eps)).length;
+  const pctGood = (good/ratios.length*100).toFixed(1);
+  const meanRatio = ratios.reduce((a,b)=>a+b,0)/ratios.length;
+  const stdRatio = Math.sqrt(ratios.map(r=>(r-meanRatio)**2).reduce((a,b)=>a+b)/ratios.length);
+
+  // Histogram
+  const hcv = document.getElementById('demoHistCanvas');
+  const hc = hcv.getContext('2d');
+  const HW = hcv.width, HH = hcv.height;
+  clearCanvas(hc, C.surface);
+
+  const minR = Math.max(0, Math.min(...ratios, 1-eps) - 0.05);
+  const maxR = Math.min(3, Math.max(...ratios, 1+eps) + 0.05);
+  drawHistogram(hc, ratios, {
+    x0:50, y0:HH-35, w:HW-70, h:HH-60, bins:40,
+    minV:minR, maxV:maxR,
+    color: C.accent,
+    greenLo:1-eps, greenHi:1+eps,
+    xLabel:'||f(u-v)|| / ||u-v||'
+  });
+
+  hc.fillStyle=C.text; hc.font='bold 11px sans-serif'; hc.textAlign='left';
+  hc.fillText(`${ratios.length} pairs`, 50, 18);
+  hc.fillStyle=hexToRgba(C.green,0.8); hc.font='11px sans-serif';
+  hc.fillText(`${pctGood}% within (1±ε)`, 50, 32);
+
+  // Scatter
+  const scv = document.getElementById('demoScatterCanvas');
+  const sc = scv.getContext('2d');
+  const SW = scv.width, SH = scv.height;
+  clearCanvas(sc, C.surface);
+
+  const sx0=50, sy0=SH-35, sw=SW-70, sh=SH-60;
+  drawAxes(sc, sx0, sy0, sw, sh, 'original dist', 'projected dist');
+
+  const maxD = Math.max(...origDists)*1.1||1;
+  const maxPD = Math.max(...projDists)*1.1||1;
+  const scaleX = sw/maxD, scaleY = sh/maxPD;
+
+  // Perfect line
+  const idealMax = Math.min(maxD, maxPD/1);
+  sc.strokeStyle=hexToRgba(C.orange,0.5); sc.lineWidth=1.5; sc.setLineDash([4,3]);
+  sc.beginPath(); sc.moveTo(sx0,sy0); sc.lineTo(sx0+maxD*scaleX, sy0-maxD*scaleY); sc.stroke();
+  sc.setLineDash([]);
+
+  // Epsilon band
+  sc.fillStyle=hexToRgba(C.green,0.07);
+  sc.beginPath();
+  sc.moveTo(sx0,sy0);
+  sc.lineTo(sx0+maxD*scaleX, sy0-maxD*(1+eps)*scaleY);
+  sc.lineTo(sx0+maxD*scaleX, sy0-maxD*(1-eps)*scaleY);
+  sc.closePath(); sc.fill();
+
+  // Points (sample up to 500 for perf)
+  const step = Math.max(1, Math.floor(origDists.length/500));
+  sc.fillStyle=hexToRgba(C.accent, 0.4);
+  for (let i=0; i<origDists.length; i+=step) {
+    const ratio = ratios[i];
+    const inBand = ratio >= (1-eps) && ratio <= (1+eps);
+    sc.fillStyle = inBand ? hexToRgba(C.green,0.5) : hexToRgba(C.red,0.5);
+    sc.beginPath();
+    sc.arc(sx0+origDists[i]*scaleX, sy0-projDists[i]*scaleY, 2.5, 0, Math.PI*2);
+    sc.fill();
+  }
+
+  // Axis ticks
+  sc.fillStyle=C.muted; sc.font='9px sans-serif'; sc.textAlign='center';
+  for (let t=0;t<=4;t++) {
+    sc.fillText((maxD/4*t).toFixed(1), sx0+sw/4*t, sy0+11);
+  }
+  sc.textAlign='right';
+  for (let t=1;t<=4;t++) {
+    sc.fillText((maxPD/4*t).toFixed(1), sx0-3, sy0-sh/4*t+3);
+  }
+
+  // Stats panel
+  document.getElementById('demoStats').innerHTML = `
+    <div class="stat-chip">Pairs: <span>${ratios.length}</span></div>
+    <div class="stat-chip">Within (1±ε): <span style="color:${parseFloat(pctGood)>80?C.green:C.orange}">${pctGood}%</span></div>
+    <div class="stat-chip">Mean ratio: <span>${meanRatio.toFixed(3)}</span></div>
+    <div class="stat-chip">Std ratio: <span>${stdRatio.toFixed(3)}</span></div>
+    <div class="stat-chip">JL bound says k≥: <span>${kJL}</span></div>
+    <div class="stat-chip">Your k: <span style="color:${k>=kJL?C.green:C.orange}">${k}</span></div>
+  `;
+}
+
+['demNSlider','demDSlider','demKSlider','demEpsSlider'].forEach(id => {
+  document.getElementById(id).addEventListener('input', runDemoExperiment);
+});
+document.getElementById('runDemo').onclick = runDemoExperiment;
+
+/* ──────────────────────────────────────────────────────────────────────────
+   INIT
+────────────────────────────────────────────────────────────────────────── */
+window.addEventListener('load', () => {
+  gen2DPoints();
+  drawConcentration();
+  drawKPlot();
+  runDemoExperiment();
+});
+</script>
+</body>
+</html>

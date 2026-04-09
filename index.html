@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concepts</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    font-size: 16px;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+  }
+
+  h1 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 2.5rem;
+    color: var(--text);
+  }
+
+  section { margin-bottom: 2.5rem; }
+
+  section h2 {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+
+  ul { list-style: none; }
+
+  li a {
+    display: block;
+    padding: 0.35rem 0;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.95rem;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.1s;
+  }
+  li a:hover { border-bottom-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<h1>Concepts</h1>
+
+<section>
+  <h2>Mathematics</h2>
+  <ul>
+    <li><a href="jl-lemma.html">Johnson–Lindenstrauss Lemma</a></li>
+  </ul>
+</section>
+
+</body>
+</html>

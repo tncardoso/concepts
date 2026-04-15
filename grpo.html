@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRPO — Group Relative Policy Optimization</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #f0883e;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --yellow: #e3b341;
+    --teal: #39d353;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.7;
+    font-size: 16px;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .nav {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 1.5rem 2rem 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .nav a { color: var(--muted); }
+  .nav a:hover { color: var(--accent); }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2rem 2rem 6rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.03em;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 1rem;
+    margin-bottom: 3rem;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    margin-top: 3rem;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  h2 .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    background: var(--accent);
+    color: #0d1117;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.75rem;
+    margin-top: 2rem;
+  }
+
+  p { margin-bottom: 1rem; color: #c9d1d9; }
+  p:last-child { margin-bottom: 0; }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .card-accent {
+    border-left: 3px solid var(--accent);
+    background: #161d2e;
+  }
+
+  .math-block {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.25rem 0;
+    font-family: 'Georgia', serif;
+    font-size: 1.05rem;
+    overflow-x: auto;
+    line-height: 2;
+  }
+  .math-block .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    vertical-align: middle;
+    margin: 0 0.1em;
+  }
+  .math-block .frac .num-f { border-bottom: 1.5px solid currentColor; padding: 0 0.2em; }
+  .math-block .frac .den-f { padding: 0 0.2em; }
+
+  code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.88em;
+    background: var(--bg3);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    color: var(--purple);
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+  .tag-blue { background: #1f3a5a; color: var(--accent); }
+  .tag-green { background: #1a3a24; color: var(--green); }
+  .tag-orange { background: #3a2a14; color: var(--orange); }
+  .tag-red { background: #3a1a1a; color: var(--red); }
+  .tag-purple { background: #2a1a3a; color: var(--purple); }
+
+  /* ── Comparison table ── */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.25rem 0;
+  }
+  .compare-col {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+  }
+  .compare-col h4 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-col.ppo h4 { color: var(--orange); }
+  .compare-col.grpo h4 { color: var(--green); }
+  .compare-col ul { list-style: none; }
+  .compare-col li {
+    font-size: 0.9rem;
+    color: var(--muted);
+    padding: 0.3rem 0;
+    padding-left: 1rem;
+    position: relative;
+  }
+  .compare-col li::before { content: '·'; position: absolute; left: 0; color: var(--border); }
+
+  /* ── Group Sampling Animation ── */
+  #sampling-demo {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.25rem 0;
+  }
+  #sampling-demo .prompt-box {
+    background: #1f3a5a;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    text-align: center;
+    color: var(--accent);
+    font-weight: 600;
+    max-width: 280px;
+    margin: 0 auto 1.5rem;
+  }
+  #sampling-demo .responses-row {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .response-card {
+    flex: 0 0 auto;
+    width: 130px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem;
+    font-size: 0.8rem;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    position: relative;
+  }
+  .response-card.visible { opacity: 1; transform: translateY(0); }
+  .response-card .r-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+  }
+  .response-card .r-text {
+    color: #c9d1d9;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+    min-height: 3rem;
+  }
+  .response-card .r-reward {
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: 'SF Mono', monospace;
+    opacity: 0;
+    transition: opacity 0.4s ease 0.2s;
+  }
+  .response-card .r-reward.show { opacity: 1; }
+  .response-card .r-adv {
+    font-size: 0.78rem;
+    font-family: 'SF Mono', monospace;
+    margin-top: 0.2rem;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .response-card .r-adv.show { opacity: 1; }
+
+  .sampling-controls {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 0.5rem 1.1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--text);
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #0d1117; border-color: var(--accent); }
+  .btn.primary:hover { background: #79b8ff; }
+
+  /* ── Advantage Calculator ── */
+  #advantage-calc {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.25rem 0;
+  }
+  .reward-inputs {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+  .reward-input-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .reward-input-group label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+  .reward-input-group input {
+    width: 62px;
+    padding: 0.4rem 0.5rem;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-size: 0.9rem;
+    text-align: center;
+    font-family: 'SF Mono', monospace;
+  }
+  .reward-input-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .adv-bars {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-end;
+    height: 120px;
+    margin-top: 1rem;
+    padding: 0 0.25rem;
+  }
+  .adv-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+    gap: 0.3rem;
+    position: relative;
+  }
+  .adv-bar {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.4s cubic-bezier(.4,0,.2,1), background 0.3s;
+    min-height: 2px;
+  }
+  .adv-val {
+    font-size: 0.72rem;
+    font-family: 'SF Mono', monospace;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .adv-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+  .zero-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Clipping Widget ── */
+  #clip-demo {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.25rem 0;
+  }
+  .clip-controls {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    align-items: flex-end;
+  }
+  .slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .slider-group label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .slider-group input[type=range] {
+    accent-color: var(--accent);
+    width: 160px;
+  }
+  .slider-val {
+    font-size: 0.85rem;
+    font-family: 'SF Mono', monospace;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  #clip-canvas {
+    display: block;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    border-radius: 6px;
+  }
+
+  /* ── KL Demo ── */
+  #kl-demo {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.25rem 0;
+  }
+  #kl-canvas {
+    display: block;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    border-radius: 6px;
+  }
+  .kl-controls {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 1rem;
+  }
+
+  /* ── Training Loop Animation ── */
+  #loop-demo {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.25rem 0;
+    overflow: hidden;
+  }
+  .loop-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .loop-step {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--border);
+    opacity: 0.3;
+    transition: opacity 0.5s ease, background 0.5s ease;
+    border-radius: 6px;
+    padding-left: 0.75rem;
+  }
+  .loop-step:last-child { border-bottom: none; }
+  .loop-step.active {
+    opacity: 1;
+    background: rgba(88, 166, 255, 0.06);
+  }
+  .loop-step.done { opacity: 0.65; }
+  .step-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    transition: border-color 0.5s, background 0.5s;
+  }
+  .loop-step.active .step-icon {
+    border-color: var(--accent);
+    background: rgba(88,166,255,0.15);
+  }
+  .loop-step.done .step-icon {
+    border-color: var(--green);
+    background: rgba(63,185,80,0.1);
+  }
+  .step-content { flex: 1; }
+  .step-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.2rem; }
+  .step-desc { font-size: 0.82rem; color: var(--muted); }
+  .step-detail {
+    font-size: 0.82rem;
+    color: var(--accent);
+    margin-top: 0.3rem;
+    font-family: 'SF Mono', monospace;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+  }
+  .loop-step.active .step-detail { max-height: 4rem; }
+  .loop-controls {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+
+  /* ── Formula annotation ── */
+  .formula-annotated {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.25rem 0;
+  }
+  .formula-line {
+    font-family: 'Georgia', serif;
+    font-size: 1.1rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    line-height: 2.2;
+    overflow-x: auto;
+  }
+  .formula-parts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .formula-part {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.85rem;
+    flex: 1;
+    min-width: 180px;
+  }
+  .formula-part .fp-sym {
+    font-family: 'Georgia', serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+  }
+  .formula-part .fp-desc { color: var(--muted); font-size: 0.82rem; line-height: 1.4; }
+
+  .highlight-blue { color: var(--accent); }
+  .highlight-green { color: var(--green); }
+  .highlight-orange { color: var(--orange); }
+  .highlight-red { color: var(--red); }
+  .highlight-purple { color: var(--purple); }
+  .highlight-yellow { color: var(--yellow); }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 3rem 0;
+  }
+
+  .toc {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+    font-size: 0.88rem;
+  }
+  .toc-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  .toc ol {
+    list-style: none;
+    counter-reset: toc-counter;
+    padding: 0;
+  }
+  .toc li {
+    counter-increment: toc-counter;
+    padding: 0.2rem 0;
+    color: var(--muted);
+  }
+  .toc li::before {
+    content: counter(toc-counter) ". ";
+    color: var(--border);
+    font-weight: 600;
+  }
+  .toc a { color: var(--accent); }
+
+  @media (max-width: 600px) {
+    .compare-grid { grid-template-columns: 1fr; }
+    h1 { font-size: 1.5rem; }
+    .clip-controls { gap: 1rem; }
+    .kl-controls { gap: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <a href="index.html">← Concepts</a>
+</div>
+
+<div class="container">
+
+  <h1>Group Relative Policy Optimization</h1>
+  <p class="subtitle">GRPO &mdash; a critic-free reinforcement learning algorithm for training language models</p>
+
+  <div class="toc">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#motivation">Motivation: RL for LLMs</a></li>
+      <li><a href="#key-idea">The Key Idea: Group Sampling</a></li>
+      <li><a href="#advantage">Advantage Estimation</a></li>
+      <li><a href="#loss">The GRPO Objective</a></li>
+      <li><a href="#clipping">Clipping the Ratio</a></li>
+      <li><a href="#kl">KL Divergence Penalty</a></li>
+      <li><a href="#loop">The Training Loop</a></li>
+    </ol>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2 id="motivation"><span class="num">1</span> Motivation: RL for LLMs</h2>
+
+  <p>
+    Language models trained with supervised learning learn to imitate data, but can't easily optimize for goals that are hard to specify as labels — like mathematical correctness, reasoning quality, or code that passes tests. Reinforcement learning lets us train against a <em>reward signal</em> instead.
+  </p>
+  <p>
+    The dominant algorithm for this is <strong>PPO</strong> (Proximal Policy Optimization), but PPO requires training a separate <em>critic network</em> (also called a value function) that estimates how good each state is. For LLMs this critic must be another large model — expensive and memory-hungry.
+  </p>
+  <p>
+    <strong>GRPO</strong>, introduced by DeepSeek in 2024, eliminates the critic entirely by computing a baseline from the rewards of a <em>group of responses</em> sampled for the same prompt.
+  </p>
+
+  <div class="compare-grid">
+    <div class="compare-col ppo">
+      <h4>PPO</h4>
+      <ul>
+        <li>Requires a value/critic network</li>
+        <li>Critic is ~same size as policy</li>
+        <li>Advantage = reward − <em>V</em>(state)</li>
+        <li>Learns V via TD/GAE updates</li>
+        <li>High memory overhead</li>
+        <li>Complex, many hyperparameters</li>
+      </ul>
+    </div>
+    <div class="compare-col grpo">
+      <h4>GRPO</h4>
+      <ul>
+        <li>No critic network needed</li>
+        <li>Baseline from reward statistics</li>
+        <li>Advantage = normalized group reward</li>
+        <li>Simple mean/std calculation</li>
+        <li>~Half the memory of PPO</li>
+        <li>Fewer moving parts</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2 id="key-idea"><span class="num">2</span> The Key Idea: Group Sampling</h2>
+
+  <p>
+    For every training prompt <em>q</em>, GRPO samples a <strong>group</strong> of <em>G</em> independent outputs from the current policy. Each output is scored by a reward model (or a rule-based function). The group's mean and standard deviation become the baseline — no separate network required.
+  </p>
+
+  <div id="sampling-demo">
+    <div class="prompt-box" id="prompt-display">What is 17 × 24?</div>
+    <div class="responses-row" id="responses-row"></div>
+    <div class="sampling-controls">
+      <button class="btn primary" id="btn-sample">Sample Group</button>
+      <button class="btn" id="btn-rewards">Score Rewards</button>
+      <button class="btn" id="btn-advantages">Compute Advantages</button>
+      <button class="btn" id="btn-reset-samp">Reset</button>
+    </div>
+  </div>
+
+  <p>
+    Each response is treated as an independent sample from the same prompt. The mean reward of the group serves as a "how-would-an-average-response-do" baseline — intuitively, responses that beat the group average get positive advantage, and those that fall below get negative advantage.
+  </p>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2 id="advantage"><span class="num">3</span> Advantage Estimation</h2>
+
+  <p>
+    The advantage <em>Â<sub>i</sub></em> for the <em>i</em>-th response in a group of <em>G</em> is:
+  </p>
+
+  <div class="math-block">
+    <span class="highlight-green">Â<sub>i</sub></span> =
+    <span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 0.15em">
+      <span style="border-bottom:1.5px solid #8b949e;padding:0 0.3em;">r<sub>i</sub> − <span class="highlight-orange">mean</span>({r<sub>1</sub>,…,r<sub>G</sub>})</span>
+      <span style="padding:0 0.3em;"><span class="highlight-purple">std</span>({r<sub>1</sub>,…,r<sub>G</sub>})</span>
+    </span>
+  </div>
+
+  <p>
+    This is simply <strong>z-score normalization</strong> over the group rewards. It answers: <em>"How much better or worse was this response than the group average, in units of standard deviation?"</em>
+  </p>
+
+  <div id="advantage-calc">
+    <h3 style="margin-top:0">Interactive: Group Advantage Calculator</h3>
+    <p style="font-size:0.85rem; color:var(--muted); margin-bottom:1rem;">Edit reward values to see how advantages change.</p>
+    <div class="reward-inputs" id="reward-inputs"></div>
+    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+      <span style="font-size:0.8rem;color:var(--muted)">Mean:</span>
+      <span id="mean-val" style="font-family:monospace;font-size:0.9rem;color:var(--orange);font-weight:700"></span>
+      <span style="margin-left:1rem;font-size:0.8rem;color:var(--muted)">Std:</span>
+      <span id="std-val" style="font-family:monospace;font-size:0.9rem;color:var(--purple);font-weight:700"></span>
+    </div>
+    <div class="adv-bars" id="adv-bars"></div>
+  </div>
+
+  <div class="card card-accent">
+    <p style="margin:0"><strong>Why normalize?</strong> Normalizing by the group std keeps gradients well-scaled regardless of the reward function's magnitude. A reward model that outputs values in [0, 10] and one that outputs [0, 1000] will produce the same normalized advantages.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2 id="loss"><span class="num">4</span> The GRPO Objective</h2>
+
+  <p>
+    GRPO maximizes the following objective (written as a loss to minimize):
+  </p>
+
+  <div class="formula-annotated">
+    <div class="formula-line">
+      ℒ<sub>GRPO</sub> = −
+      <span class="highlight-blue">
+        <span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 0.1em">
+          <span style="border-bottom:1.5px solid #58a6ff;padding:0 0.3em;">1</span>
+          <span style="padding:0 0.3em;"><em>G</em></span>
+        </span>
+      </span>
+      <span style="font-size:1.5rem;vertical-align:middle">∑</span><sub style="font-size:0.8rem"><em>i=1</em></sub><sup style="font-size:0.8rem"><em>G</em></sup>
+      <span class="highlight-orange">min</span>(
+        <span class="highlight-yellow">ρ<sub>i</sub></span> · <span class="highlight-green">Â<sub>i</sub></span>,
+        &nbsp;<span class="highlight-red">clip</span>(<span class="highlight-yellow">ρ<sub>i</sub></span>, 1−ε, 1+ε) · <span class="highlight-green">Â<sub>i</sub></span>
+      ) + <span class="highlight-purple">β</span> · <span class="highlight-purple">𝔻<sub>KL</sub></span>
+    </div>
+    <div class="formula-parts">
+      <div class="formula-part">
+        <div class="fp-sym highlight-yellow">ρ<sub>i</sub> = π<sub>θ</sub>(o<sub>i</sub>|q) / π<sub>θ<sub>old</sub></sub>(o<sub>i</sub>|q)</div>
+        <div class="fp-desc">Probability ratio: how much more/less likely is the new policy to produce this response compared to the old policy?</div>
+      </div>
+      <div class="formula-part">
+        <div class="fp-sym highlight-green">Â<sub>i</sub></div>
+        <div class="fp-desc">Group-relative advantage: normalized reward for response <em>i</em> within its group.</div>
+      </div>
+      <div class="formula-part">
+        <div class="fp-sym highlight-red">clip(ρ, 1−ε, 1+ε)</div>
+        <div class="fp-desc">Prevents the policy from changing too rapidly. ε is typically 0.1–0.2.</div>
+      </div>
+      <div class="formula-part">
+        <div class="fp-sym highlight-purple">β · 𝔻<sub>KL</sub>(π<sub>θ</sub> ‖ π<sub>ref</sub>)</div>
+        <div class="fp-desc">Penalizes divergence from a reference (initial) policy to prevent reward hacking.</div>
+      </div>
+    </div>
+  </div>
+
+  <p>
+    The <code>min</code> between the clipped and unclipped objectives creates a <em>pessimistic</em> bound: it only uses the unclipped ratio when doing so would reduce the objective (i.e., discourage bad behavior), but blocks the policy from taking large steps toward good behavior.
+  </p>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2 id="clipping"><span class="num">5</span> Clipping the Probability Ratio</h2>
+
+  <p>
+    The clipping mechanism is the heart of the PPO-style update. It creates a trust region without solving a constrained optimization problem.
+  </p>
+
+  <div id="clip-demo">
+    <h3 style="margin-top:0">Interactive: Clipped Objective</h3>
+    <div class="clip-controls">
+      <div class="slider-group">
+        <label>ε (clip range): <span class="slider-val" id="eps-val">0.20</span></label>
+        <input type="range" id="eps-slider" min="0.01" max="0.5" step="0.01" value="0.2">
+      </div>
+      <div class="slider-group">
+        <label>Advantage <em>Â</em>: <span class="slider-val" id="adv-val-display">+1.00</span></label>
+        <input type="range" id="adv-slider" min="-2" max="2" step="0.05" value="1">
+      </div>
+    </div>
+    <canvas id="clip-canvas" height="280"></canvas>
+    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin-top:0.75rem">
+      <span class="highlight-blue">─</span> Unclipped &nbsp;
+      <span class="highlight-orange">─</span> Clipped &nbsp;
+      <span class="highlight-green">─</span> min(unclipped, clipped) = actual objective
+    </p>
+  </div>
+
+  <div class="card card-accent">
+    <p style="margin:0">
+      <strong>Intuition:</strong> When the advantage is <em>positive</em> (response is good), clipping caps how much we can increase its probability — preventing overconfident updates. When advantage is <em>negative</em> (response is bad), clipping prevents the policy from being pushed too far away from its current behavior all at once.
+    </p>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2 id="kl"><span class="num">6</span> KL Divergence Penalty</h2>
+
+  <p>
+    Without any constraint, a policy trained purely on reward can collapse into degenerate behavior — outputting whatever maximally satisfies the reward model, even if it's nonsense. The KL divergence penalty keeps the policy close to a frozen <em>reference policy</em> (usually the supervised fine-tuned model before RL training).
+  </p>
+
+  <div class="math-block">
+    𝔻<sub>KL</sub>(π<sub>θ</sub> ‖ π<sub>ref</sub>) =
+    <span style="font-size:1.3rem;vertical-align:middle">∑</span><sub style="font-size:0.8rem">t</sub>
+    π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>) · log
+    <span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 0.2em">
+      <span style="border-bottom:1.5px solid #8b949e;padding:0 0.3em;">π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>)</span>
+      <span style="padding:0 0.3em;">π<sub>ref</sub>(a<sub>t</sub> | s<sub>t</sub>)</span>
+    </span>
+  </div>
+
+  <div id="kl-demo">
+    <h3 style="margin-top:0">Interactive: KL Divergence</h3>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;">Drag the slider to move the learned policy away from the reference policy.</p>
+    <div class="kl-controls">
+      <div class="slider-group">
+        <label>Policy shift: <span class="slider-val" id="kl-shift-val">0.0</span></label>
+        <input type="range" id="kl-shift" min="-3" max="3" step="0.05" value="0">
+      </div>
+      <div style="font-size:0.88rem;color:var(--muted);align-self:center">
+        KL = <span id="kl-value" style="font-family:monospace;color:var(--purple);font-weight:700;font-size:1rem">0.000</span>
+      </div>
+    </div>
+    <canvas id="kl-canvas" height="200"></canvas>
+    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin-top:0.75rem">
+      <span class="highlight-blue">─</span> Reference policy π<sub>ref</sub> &nbsp;
+      <span class="highlight-orange">─</span> Learned policy π<sub>θ</sub>
+    </p>
+  </div>
+
+  <p>The β coefficient controls the strength of this penalty. A larger β keeps the policy closer to the reference but slows improvement. In practice, DeepSeek uses a small β (around 0.001–0.1) so the KL term acts as a soft regularizer rather than a hard constraint.</p>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2 id="loop"><span class="num">7</span> The Training Loop</h2>
+
+  <p>
+    Each iteration of GRPO processes a batch of prompts and performs the following steps:
+  </p>
+
+  <div id="loop-demo">
+    <div class="loop-steps" id="loop-steps">
+      <div class="loop-step" data-step="0">
+        <div class="step-icon">📥</div>
+        <div class="step-content">
+          <div class="step-title">Sample prompt batch</div>
+          <div class="step-desc">Draw a batch of prompts from the training dataset.</div>
+          <div class="step-detail">batch = dataset.sample(batch_size=16)</div>
+        </div>
+      </div>
+      <div class="loop-step" data-step="1">
+        <div class="step-icon">🔀</div>
+        <div class="step-content">
+          <div class="step-title">Generate G responses per prompt</div>
+          <div class="step-desc">Sample G independent completions from the current policy and cache their log-probabilities — these become the fixed denominator for ratio computation during updates.</div>
+          <div class="step-detail">responses, old_log_probs = policy.generate_with_logprobs(prompts, n=G)</div>
+        </div>
+      </div>
+      <div class="loop-step" data-step="2">
+        <div class="step-icon">🏆</div>
+        <div class="step-content">
+          <div class="step-title">Score with reward model</div>
+          <div class="step-desc">Compute a scalar reward for each response using a reward function or model.</div>
+          <div class="step-detail">rewards = reward_fn(prompts, responses)  # shape [B, G]</div>
+        </div>
+      </div>
+      <div class="loop-step" data-step="3">
+        <div class="step-icon">📊</div>
+        <div class="step-content">
+          <div class="step-title">Compute group-relative advantages</div>
+          <div class="step-desc">Normalize rewards within each group to get advantages.</div>
+          <div class="step-detail">A = (rewards − rewards.mean(-1, keepdim=True)) / rewards.std(-1)</div>
+        </div>
+      </div>
+      <div class="loop-step" data-step="4">
+        <div class="step-icon">⚙️</div>
+        <div class="step-content">
+          <div class="step-title">Compute GRPO loss</div>
+          <div class="step-desc">Calculate the clipped surrogate loss plus KL penalty under the current policy π<sub>θ</sub>.</div>
+          <div class="step-detail">ratio = (policy.log_prob(responses) - old_log_probs).exp()&#10;<br />loss = -mean(min(ratio*A, clip(ratio,1-ε,1+ε)*A)) + β*KL</div>
+        </div>
+      </div>
+      <div class="loop-step" data-step="5">
+        <div class="step-icon">🔧</div>
+        <div class="step-content">
+          <div class="step-title">Gradient update</div>
+          <div class="step-desc">Backpropagate and update only the policy network. No critic to update.</div>
+          <div class="step-detail">optimizer.step()  # ← only one model to update!</div>
+        </div>
+      </div>
+    </div>
+    <div class="loop-controls">
+      <button class="btn primary" id="btn-loop-next">Next Step →</button>
+      <button class="btn" id="btn-loop-auto">Auto Play</button>
+      <button class="btn" id="btn-loop-reset">Reset</button>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <h2 style="margin-top:0"><span class="num" style="background:var(--green)">✓</span> Summary</h2>
+
+  <div class="card">
+    <p>GRPO achieves PPO-quality RL training for language models by replacing the critic with a simple statistical trick: <strong>normalizing rewards within a group of responses sampled for the same prompt</strong>. This eliminates an entire large model from the training pipeline.</p>
+
+    <p>The algorithm inherits PPO's stability through <strong>clipped probability ratios</strong>, and prevents reward hacking through a <strong>KL divergence penalty</strong> against a frozen reference policy.</p>
+
+    <p style="margin-bottom:0">GRPO was used to train DeepSeek-R1 and its distilled variants, and has since become a popular foundation for open RLHF training pipelines like TRL, OpenRLHF, and veRL.</p>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ══════════════════════════════════════════════
+// SAMPLING DEMO
+// ══════════════════════════════════════════════
+(function() {
+  const prompts = [
+    { text: "What is 17 × 24?", answer: "408" },
+    { text: "Solve: 3x + 5 = 20", answer: "x = 5" },
+    { text: "Is 97 prime?", answer: "Yes" },
+  ];
+  const responseSets = [
+    [
+      { text: "17×24 = 408", reward: 1.0 },
+      { text: "17×24 = 400\n(approx)", reward: 0.3 },
+      { text: "17×24 = 408,\nstep: 17×20=340,\n17×4=68", reward: 1.0 },
+      { text: "17×24 = 412\n(wrong)", reward: 0.0 },
+      { text: "17×24 = 408.\n340+68=408", reward: 1.0 },
+      { text: "Multiply:\n408", reward: 0.8 },
+    ],
+    [
+      { text: "3x=15,\nx=5 ✓", reward: 1.0 },
+      { text: "x = 5", reward: 0.9 },
+      { text: "x = 15/3 = 5", reward: 1.0 },
+      { text: "3x=25,\nx≈8", reward: 0.0 },
+      { text: "x = 5.0", reward: 0.85 },
+      { text: "subtract 5:\nx=5", reward: 0.95 },
+    ],
+    [
+      { text: "Yes, 97 is prime", reward: 1.0 },
+      { text: "No, 97=9×10+7", reward: 0.0 },
+      { text: "Yes — no divisors\nup to √97≈9.8", reward: 1.0 },
+      { text: "Let me check...\nYes", reward: 0.7 },
+      { text: "97 is prime ✓", reward: 1.0 },
+      { text: "Not sure, maybe", reward: 0.1 },
+    ],
+  ];
+
+  let currentPromptIdx = 0;
+  let state = 'idle'; // idle, sampled, scored, advantages
+
+  const rewardColors = [
+    { h: '#f85149', l: 0.0 },
+    { h: '#f0883e', l: 0.3 },
+    { h: '#e3b341', l: 0.5 },
+    { h: '#3fb950', l: 0.8 },
+    { h: '#3fb950', l: 1.0 },
+  ];
+
+  function rewardColor(r) {
+    if (r >= 0.9) return '#3fb950';
+    if (r >= 0.7) return '#79c0ff';
+    if (r >= 0.4) return '#e3b341';
+    if (r >= 0.1) return '#f0883e';
+    return '#f85149';
+  }
+
+  function renderResponses() {
+    const row = document.getElementById('responses-row');
+    const p = prompts[currentPromptIdx];
+    const rs = responseSets[currentPromptIdx];
+    document.getElementById('prompt-display').textContent = p.text;
+    row.innerHTML = '';
+    rs.forEach((r, i) => {
+      const card = document.createElement('div');
+      card.className = 'response-card';
+      card.innerHTML = `
+        <div class="r-label">o<sub>${i+1}</sub></div>
+        <div class="r-text">${r.text}</div>
+        <div class="r-reward" id="reward-${i}">r = ${r.reward.toFixed(2)}</div>
+        <div class="r-adv" id="adv-${i}"></div>
+      `;
+      row.appendChild(card);
+    });
+  }
+
+  function computeAdvantages(rewards) {
+    const mean = rewards.reduce((a,b)=>a+b,0)/rewards.length;
+    const std = Math.sqrt(rewards.reduce((a,b)=>a+(b-mean)**2,0)/rewards.length) || 1e-8;
+    return rewards.map(r => (r-mean)/std);
+  }
+
+  document.getElementById('btn-sample').onclick = function() {
+    state = 'sampled';
+    currentPromptIdx = (currentPromptIdx + 1) % prompts.length;
+    renderResponses();
+    const cards = document.querySelectorAll('.response-card');
+    cards.forEach((c, i) => {
+      setTimeout(() => c.classList.add('visible'), i * 120);
+    });
+  };
+
+  document.getElementById('btn-rewards').onclick = function() {
+    if (state === 'idle') return;
+    state = 'scored';
+    const rs = responseSets[currentPromptIdx];
+    rs.forEach((r, i) => {
+      const el = document.getElementById(`reward-${i}`);
+      if (el) {
+        el.style.color = rewardColor(r.reward);
+        el.classList.add('show');
+      }
+    });
+  };
+
+  document.getElementById('btn-advantages').onclick = function() {
+    if (state !== 'scored') return;
+    state = 'advantages';
+    const rs = responseSets[currentPromptIdx];
+    const advs = computeAdvantages(rs.map(r => r.reward));
+    advs.forEach((a, i) => {
+      const el = document.getElementById(`adv-${i}`);
+      if (el) {
+        el.textContent = `Â = ${a >= 0 ? '+' : ''}${a.toFixed(3)}`;
+        el.style.color = a >= 0 ? '#3fb950' : '#f85149';
+        el.classList.add('show');
+      }
+    });
+  };
+
+  document.getElementById('btn-reset-samp').onclick = function() {
+    state = 'idle';
+    document.getElementById('responses-row').innerHTML = '';
+    document.getElementById('prompt-display').textContent = prompts[0].text;
+    currentPromptIdx = 0;
+  };
+
+  renderResponses();
+})();
+
+// ══════════════════════════════════════════════
+// ADVANTAGE CALCULATOR
+// ══════════════════════════════════════════════
+(function() {
+  const G = 6;
+  const defaultRewards = [0.9, 0.3, 1.0, 0.0, 0.7, 0.5];
+  let rewards = [...defaultRewards];
+
+  function mean(arr) { return arr.reduce((a,b)=>a+b,0)/arr.length; }
+  function std(arr) {
+    const m = mean(arr);
+    return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/arr.length) || 1e-8;
+  }
+
+  const inputContainer = document.getElementById('reward-inputs');
+  const barsContainer = document.getElementById('adv-bars');
+
+  function buildInputs() {
+    inputContainer.innerHTML = '';
+    rewards.forEach((r, i) => {
+      const g = document.createElement('div');
+      g.className = 'reward-input-group';
+      g.innerHTML = `<label>r<sub>${i+1}</sub></label>
+        <input type="number" value="${r}" step="0.1" min="-5" max="5" data-idx="${i}">`;
+      inputContainer.appendChild(g);
+    });
+    inputContainer.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', function() {
+        const idx = parseInt(this.dataset.idx);
+        rewards[idx] = parseFloat(this.value) || 0;
+        renderBars();
+      });
+    });
+  }
+
+  function renderBars() {
+    const m = mean(rewards);
+    const s = std(rewards);
+    const advs = rewards.map(r => (r - m) / s);
+    document.getElementById('mean-val').textContent = m.toFixed(3);
+    document.getElementById('std-val').textContent = s.toFixed(3);
+
+    const maxAbs = Math.max(...advs.map(Math.abs), 0.5);
+    const halfH = 55; // px per unit from center
+
+    barsContainer.innerHTML = '';
+    advs.forEach((a, i) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'adv-bar-wrap';
+
+      // zero line at 50% height
+      const zeroLine = document.createElement('div');
+      zeroLine.className = 'zero-line';
+      zeroLine.style.bottom = '50%';
+
+      const bar = document.createElement('div');
+      bar.className = 'adv-bar';
+      const heightPct = Math.abs(a) / maxAbs * 50;
+      bar.style.height = heightPct + '%';
+      bar.style.width = '100%';
+      bar.style.position = 'absolute';
+      bar.style.background = a >= 0 ? '#3fb950' : '#f85149';
+      bar.style.bottom = a >= 0 ? '50%' : (50 - heightPct) + '%';
+      bar.style.minHeight = '2px';
+
+      const val = document.createElement('div');
+      val.className = 'adv-val';
+      val.textContent = (a >= 0 ? '+' : '') + a.toFixed(2);
+      val.style.position = 'absolute';
+      val.style.bottom = a >= 0 ? `calc(50% + ${heightPct}% + 4px)` : `calc(${50 - heightPct}% - 18px)`;
+      val.style.color = a >= 0 ? '#3fb950' : '#f85149';
+      val.style.fontSize = '0.7rem';
+      val.style.fontFamily = 'monospace';
+      val.style.width = '100%';
+      val.style.textAlign = 'center';
+
+      const lbl = document.createElement('div');
+      lbl.style.position = 'absolute';
+      lbl.style.bottom = '-20px';
+      lbl.style.fontSize = '0.68rem';
+      lbl.style.color = 'var(--muted)';
+      lbl.style.width = '100%';
+      lbl.style.textAlign = 'center';
+      lbl.innerHTML = `r<sub>${i+1}</sub>`;
+
+      wrap.style.position = 'relative';
+      wrap.appendChild(zeroLine);
+      wrap.appendChild(bar);
+      wrap.appendChild(val);
+      wrap.appendChild(lbl);
+      barsContainer.appendChild(wrap);
+    });
+  }
+
+  buildInputs();
+  renderBars();
+})();
+
+// ══════════════════════════════════════════════
+// CLIPPING WIDGET
+// ══════════════════════════════════════════════
+(function() {
+  const canvas = document.getElementById('clip-canvas');
+  const ctx = canvas.getContext('2d');
+  const epsSlider = document.getElementById('eps-slider');
+  const advSlider = document.getElementById('adv-slider');
+  const epsValEl = document.getElementById('eps-val');
+  const advValEl = document.getElementById('adv-val-display');
+
+  function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = Math.min(520, rect.width - 48);
+    canvas.width = w * window.devicePixelRatio;
+    canvas.height = 280 * window.devicePixelRatio;
+    canvas.style.width = w + 'px';
+    canvas.style.height = '280px';
+    draw();
+  }
+
+  function draw() {
+    const eps = parseFloat(epsSlider.value);
+    const Adv = parseFloat(advSlider.value);
+    const W = canvas.width, H = canvas.height;
+    const dpr = window.devicePixelRatio;
+    ctx.clearRect(0, 0, W, H);
+
+    const pad = { left: 50*dpr, right: 20*dpr, top: 20*dpr, bottom: 40*dpr };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+
+    // coordinate mapping
+    const rMin = 0.2, rMax = 2.0;
+    const objMin = -1.5 * Math.abs(Adv) - 0.3;
+    const objMax = 1.5 * Math.abs(Adv) + 0.3;
+
+    function rx(r) { return pad.left + (r - rMin) / (rMax - rMin) * plotW; }
+    function ry(o) { return pad.top + (1 - (o - objMin) / (objMax - objMin)) * plotH; }
+
+    // grid
+    ctx.strokeStyle = '#30363d';
+    ctx.lineWidth = dpr;
+    ctx.setLineDash([4*dpr, 4*dpr]);
+    for (let r = 0.5; r <= 2.0; r += 0.5) {
+      ctx.beginPath(); ctx.moveTo(rx(r), pad.top); ctx.lineTo(rx(r), pad.top+plotH); ctx.stroke();
+    }
+    for (let o = Math.ceil(objMin*2)/2; o <= objMax; o += 0.5) {
+      ctx.beginPath(); ctx.moveTo(pad.left, ry(o)); ctx.lineTo(pad.left+plotW, ry(o)); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // axes
+    ctx.strokeStyle = '#8b949e';
+    ctx.lineWidth = dpr;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top+plotH);
+    ctx.moveTo(pad.left, pad.top+plotH); ctx.lineTo(pad.left+plotW, pad.top+plotH);
+    ctx.stroke();
+
+    // zero line
+    if (ry(0) >= pad.top && ry(0) <= pad.top+plotH) {
+      ctx.strokeStyle = '#444c56';
+      ctx.setLineDash([6*dpr, 3*dpr]);
+      ctx.beginPath(); ctx.moveTo(pad.left, ry(0)); ctx.lineTo(pad.left+plotW, ry(0)); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    const steps = 300;
+
+    function drawLine(color, fn) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2*dpr;
+      ctx.beginPath();
+      for (let k = 0; k <= steps; k++) {
+        const r = rMin + (rMax - rMin) * k / steps;
+        const y = fn(r);
+        if (k === 0) ctx.moveTo(rx(r), ry(y));
+        else ctx.lineTo(rx(r), ry(y));
+      }
+      ctx.stroke();
+    }
+
+    // unclipped: r * A
+    drawLine('#58a6ff', r => r * Adv);
+    // clipped
+    drawLine('#f0883e', r => Math.min(Math.max(r, 1-eps), 1+eps) * Adv);
+    // min of both
+    ctx.setLineDash([]);
+    drawLine('#3fb950', r => Math.min(r*Adv, Math.min(Math.max(r,1-eps),1+eps)*Adv));
+
+    // clip region indicator
+    ctx.fillStyle = 'rgba(88,166,255,0.07)';
+    ctx.fillRect(rx(1-eps), pad.top, rx(1+eps)-rx(1-eps), plotH);
+    ctx.strokeStyle = '#58a6ff55';
+    ctx.lineWidth = dpr;
+    ctx.beginPath();
+    ctx.moveTo(rx(1-eps), pad.top); ctx.lineTo(rx(1-eps), pad.top+plotH);
+    ctx.moveTo(rx(1+eps), pad.top); ctx.lineTo(rx(1+eps), pad.top+plotH);
+    ctx.stroke();
+
+    // ρ=1 marker
+    ctx.strokeStyle = '#e3b341';
+    ctx.lineWidth = 1.5*dpr;
+    ctx.setLineDash([4*dpr, 3*dpr]);
+    ctx.beginPath(); ctx.moveTo(rx(1), pad.top); ctx.lineTo(rx(1), pad.top+plotH); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // axis labels
+    ctx.fillStyle = '#8b949e';
+    ctx.font = `${11*dpr}px -apple-system,sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('ρ (probability ratio)', pad.left + plotW/2, H - 4*dpr);
+    ctx.save();
+    ctx.translate(14*dpr, pad.top + plotH/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillText('objective', 0, 0);
+    ctx.restore();
+
+    for (let r = 0.5; r <= 2.0; r += 0.5) {
+      ctx.fillStyle = '#8b949e';
+      ctx.font = `${9*dpr}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(r.toFixed(1), rx(r), pad.top + plotH + 14*dpr);
+    }
+
+    // clip range label
+    ctx.fillStyle = '#58a6ff99';
+    ctx.font = `bold ${9*dpr}px -apple-system,sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(`[${(1-eps).toFixed(2)}, ${(1+eps).toFixed(2)}]`, rx(1), pad.top - 6*dpr);
+  }
+
+  epsSlider.addEventListener('input', function() {
+    epsValEl.textContent = parseFloat(this.value).toFixed(2);
+    draw();
+  });
+  advSlider.addEventListener('input', function() {
+    const v = parseFloat(this.value);
+    advValEl.textContent = (v >= 0 ? '+' : '') + v.toFixed(2);
+    draw();
+  });
+
+  window.addEventListener('resize', resize);
+  resize();
+})();
+
+// ══════════════════════════════════════════════
+// KL DEMO
+// ══════════════════════════════════════════════
+(function() {
+  const canvas = document.getElementById('kl-canvas');
+  const ctx = canvas.getContext('2d');
+  const shiftSlider = document.getElementById('kl-shift');
+  const shiftValEl = document.getElementById('kl-shift-val');
+  const klValueEl = document.getElementById('kl-value');
+
+  function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = Math.min(520, rect.width - 48);
+    canvas.width = w * window.devicePixelRatio;
+    canvas.height = 200 * window.devicePixelRatio;
+    canvas.style.width = w + 'px';
+    canvas.style.height = '200px';
+    draw();
+  }
+
+  function gaussian(x, mu, sigma) {
+    return Math.exp(-0.5*((x-mu)/sigma)**2) / (sigma * Math.sqrt(2*Math.PI));
+  }
+
+  function computeKL(mu1, sigma1, mu2, sigma2) {
+    // KL(N(mu2,s2) || N(mu1,s1)) = log(s1/s2) + (s2^2 + (mu2-mu1)^2)/(2*s1^2) - 0.5
+    return Math.log(sigma1/sigma2) + (sigma2**2 + (mu2-mu1)**2)/(2*sigma1**2) - 0.5;
+  }
+
+  function draw() {
+    const shift = parseFloat(shiftSlider.value);
+    const muRef = 0, sigmaRef = 1;
+    const muPol = shift, sigmaPol = 0.9;
+    const kl = Math.max(0, computeKL(muRef, sigmaRef, muPol, sigmaPol));
+    klValueEl.textContent = kl.toFixed(3);
+
+    const W = canvas.width, H = canvas.height;
+    const dpr = window.devicePixelRatio;
+    ctx.clearRect(0, 0, W, H);
+
+    const pad = { left: 20*dpr, right: 20*dpr, top: 20*dpr, bottom: 30*dpr };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+
+    const xMin = -5, xMax = 5;
+    const yMax = 0.55;
+
+    function px(x) { return pad.left + (x - xMin) / (xMax - xMin) * plotW; }
+    function py(y) { return pad.top + (1 - y / yMax) * plotH; }
+
+    const steps = 400;
+
+    function drawGaussian(mu, sigma, strokeColor, fillColor, dashed) {
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2.5 * dpr;
+      if (dashed) ctx.setLineDash([6*dpr, 4*dpr]);
+      else ctx.setLineDash([]);
+      ctx.beginPath();
+      for (let k = 0; k <= steps; k++) {
+        const x = xMin + (xMax - xMin) * k / steps;
+        const y = gaussian(x, mu, sigma);
+        if (k === 0) ctx.moveTo(px(x), py(y));
+        else ctx.lineTo(px(x), py(y));
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = fillColor;
+      ctx.beginPath();
+      ctx.moveTo(px(xMin), py(0));
+      for (let k = 0; k <= steps; k++) {
+        const x = xMin + (xMax - xMin) * k / steps;
+        ctx.lineTo(px(x), py(gaussian(x, mu, sigma)));
+      }
+      ctx.lineTo(px(xMax), py(0));
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // baseline
+    ctx.strokeStyle = '#30363d';
+    ctx.lineWidth = dpr;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, pad.top + plotH);
+    ctx.lineTo(pad.left + plotW, pad.top + plotH);
+    ctx.stroke();
+
+    drawGaussian(muRef, sigmaRef, '#58a6ff', 'rgba(88,166,255,0.12)', false);
+    drawGaussian(muPol, sigmaPol, '#f0883e', 'rgba(240,136,62,0.12)', true);
+
+    // KL shaded overlap region
+    const klIntensity = Math.min(1, kl / 3);
+    ctx.fillStyle = `rgba(248,81,73, ${klIntensity * 0.15})`;
+    ctx.fillRect(pad.left, pad.top, plotW, plotH);
+
+    // axis tick labels
+    ctx.fillStyle = '#8b949e';
+    ctx.font = `${9*dpr}px monospace`;
+    ctx.textAlign = 'center';
+    for (let x = -4; x <= 4; x += 2) {
+      ctx.fillText(x, px(x), pad.top + plotH + 14*dpr);
+    }
+  }
+
+  shiftSlider.addEventListener('input', function() {
+    shiftValEl.textContent = parseFloat(this.value).toFixed(1);
+    draw();
+  });
+
+  window.addEventListener('resize', resize);
+  resize();
+})();
+
+// ══════════════════════════════════════════════
+// TRAINING LOOP ANIMATION
+// ══════════════════════════════════════════════
+(function() {
+  let currentStep = -1;
+  let autoTimer = null;
+  const steps = document.querySelectorAll('.loop-step');
+  const totalSteps = steps.length;
+
+  function setStep(n) {
+    steps.forEach((s, i) => {
+      s.classList.remove('active', 'done');
+      if (i < n) s.classList.add('done');
+      if (i === n) s.classList.add('active');
+    });
+    currentStep = n;
+  }
+
+  document.getElementById('btn-loop-next').onclick = function() {
+    if (currentStep < totalSteps - 1) {
+      setStep(currentStep + 1);
+    } else {
+      setStep(-1);
+      steps.forEach(s => s.classList.remove('active','done'));
+      currentStep = -1;
+    }
+    this.textContent = currentStep >= totalSteps - 1 ? 'Restart ↺' : 'Next Step →';
+  };
+
+  document.getElementById('btn-loop-auto').onclick = function() {
+    if (autoTimer) {
+      clearInterval(autoTimer);
+      autoTimer = null;
+      this.textContent = 'Auto Play';
+      return;
+    }
+    this.textContent = 'Pause';
+    setStep(Math.max(0, currentStep + 1));
+    autoTimer = setInterval(() => {
+      if (currentStep >= totalSteps - 1) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+        document.getElementById('btn-loop-auto').textContent = 'Auto Play';
+        document.getElementById('btn-loop-next').textContent = 'Restart ↺';
+        return;
+      }
+      setStep(currentStep + 1);
+      document.getElementById('btn-loop-next').textContent =
+        currentStep >= totalSteps - 1 ? 'Restart ↺' : 'Next Step →';
+    }, 1400);
+  };
+
+  document.getElementById('btn-loop-reset').onclick = function() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    document.getElementById('btn-loop-auto').textContent = 'Auto Play';
+    document.getElementById('btn-loop-next').textContent = 'Next Step →';
+    steps.forEach(s => s.classList.remove('active','done'));
+    currentStep = -1;
+  };
+})();
+</script>
+
+</body>
+</html>

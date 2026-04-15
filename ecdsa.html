@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECDSA — Interactive Explainer</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters:[
+    {left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}
+  ]});"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --teal: #39d353;
+    --cyan: #56d4dd;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.7;
+    font-size: 16px;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  h1, h2, h3 { line-height: 1.3; }
+
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; gap: 1.5rem;
+    height: 52px;
+    overflow-x: auto;
+  }
+  nav .logo { font-weight: 700; font-size: 0.9rem; color: var(--accent); letter-spacing: 0.04em; white-space: nowrap; }
+  nav a { font-size: 0.85rem; color: var(--muted); transition: color .2s; white-space: nowrap; }
+  nav a:hover { color: var(--text); }
+
+  .hero {
+    text-align: center;
+    padding: 5rem 2rem 4rem;
+    background: radial-gradient(ellipse at 50% 0%, rgba(88,166,255,0.08) 0%, transparent 70%);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: rgba(88,166,255,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(88,166,255,0.3);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; margin-bottom: 1rem; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { font-size: 1.1rem; color: var(--muted); max-width: 680px; margin: 0 auto 2rem; }
+
+  .section {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section:last-child { border-bottom: none; }
+  .section-label {
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem;
+  }
+  .section h2 { font-size: 1.8rem; font-weight: 700; margin-bottom: 1rem; }
+  .section h3 { font-size: 1.2rem; margin: 1.5rem 0 0.5rem; }
+  .section p, .section li { color: var(--muted); margin-bottom: 0.8rem; }
+  .section strong { color: var(--text); }
+  .section ul { padding-left: 1.5rem; }
+  .section li { margin-bottom: 0.4rem; }
+
+  .math-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+  .math-box .katex-display { margin: 0; }
+
+  .theorem-box {
+    background: rgba(88,166,255,0.05);
+    border: 1px solid rgba(88,166,255,0.2);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .theorem-box .theorem-title {
+    font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem;
+  }
+  .theorem-box p { color: var(--text); }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+  .card h3 { font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); margin-top:0; }
+  .card p { font-size: 0.88rem; color: var(--muted); margin: 0; }
+  .card .icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+
+  .viz-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+  }
+  .viz-header {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 0.5rem;
+  }
+  .viz-header h3 { font-size: 0.95rem; font-weight: 600; margin: 0; }
+  .viz-body { padding: 1rem; }
+  canvas { display: block; border-radius: 6px; }
+
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 1.25rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    align-items: center;
+  }
+  .ctrl-group { display: flex; flex-direction: column; gap: 0.3rem; min-width: 140px; }
+  .ctrl-group label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+  .ctrl-group .ctrl-val { font-size: 0.78rem; color: var(--accent); font-weight: 700; }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%; height: 4px; border-radius: 4px;
+    background: var(--border); outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); cursor: pointer;
+    box-shadow: 0 0 0 2px rgba(88,166,255,0.25);
+  }
+  button.btn {
+    padding: 0.45rem 1rem; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text); cursor: pointer;
+    font-size: 0.85rem; font-weight: 600; transition: all .15s;
+  }
+  button.btn:hover { background: var(--border); border-color: var(--accent); color: var(--accent); }
+  button.btn.primary { background: rgba(88,166,255,0.15); border-color: rgba(88,166,255,0.4); color: var(--accent); }
+
+  .stat-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 0.5rem 0; }
+  .stat-chip {
+    padding: 0.3rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface2); font-size: 0.8rem;
+  }
+  .stat-chip span { color: var(--accent); font-weight: 700; }
+
+  .step-list { counter-reset: step; display: flex; flex-direction: column; gap: 1rem; margin: 1.5rem 0; }
+  .step-item {
+    display: flex; gap: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+  }
+  .step-num {
+    counter-increment: step;
+    flex-shrink: 0;
+    width: 2rem; height: 2rem;
+    background: rgba(88,166,255,0.15);
+    border: 1px solid rgba(88,166,255,0.3);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700; color: var(--accent);
+  }
+  .step-item h4 { font-size: 0.95rem; margin-bottom: 0.3rem; }
+  .step-item p { font-size: 0.88rem; color: var(--muted); margin: 0; }
+
+  details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  summary {
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  summary::after { content: '▸'; color: var(--muted); transition: transform .2s; }
+  details[open] summary::after { transform: rotate(90deg); }
+  details .inner { padding: 0 1.25rem 1.25rem; }
+  details .inner p { font-size: 0.9rem; }
+
+  .flow-diagram {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.75rem; flex-wrap: wrap; margin: 1.5rem 0;
+  }
+  .flow-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    text-align: center;
+    min-width: 140px;
+  }
+  .flow-box h4 { font-size: 0.85rem; margin-bottom: 0.3rem; }
+  .flow-box p { font-size: 0.78rem; color: var(--muted); margin: 0; }
+  .flow-arrow { font-size: 1.2rem; color: var(--muted); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 700px) {
+    .two-col { grid-template-columns: 1fr; }
+    .controls { flex-direction: column; }
+    .ctrl-group { min-width: unset; width: 100%; }
+  }
+
+  .highlight { color: var(--accent); }
+  .hl-green { color: var(--green); }
+  .hl-orange { color: var(--orange); }
+  .hl-red { color: var(--red); }
+  .hl-purple { color: var(--purple); }
+  .hl-cyan { color: var(--cyan); }
+
+  .warning-box {
+    background: rgba(210,153,34,0.08);
+    border: 1px solid rgba(210,153,34,0.25);
+    border-left: 3px solid var(--orange);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .warning-box p { color: var(--text); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">ECDSA</div>
+  <a href="#signatures">Signatures</a>
+  <a href="#curves">Curves</a>
+  <a href="#addition">Addition</a>
+  <a href="#scalar">Scalar Mult</a>
+  <a href="#discrete-log">Trap Door</a>
+  <a href="#keys">Keys</a>
+  <a href="#signing">Signing</a>
+  <a href="#verification">Verification</a>
+  <a href="#demo">Demo</a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════ HERO -->
+<div class="hero">
+  <div class="badge">Cryptography</div>
+  <h1>Elliptic Curve <span>Digital Signature</span> Algorithm</h1>
+  <p>
+    The algorithm that powers Bitcoin, TLS, SSH, and most of the secure internet.
+    Built on the elegant mathematics of elliptic curves and a <strong>trap-door
+    function</strong> that's easy to compute one way, but believed impossible to reverse.
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ SIGNATURES -->
+<div id="signatures" class="section">
+  <div class="section-label">Section 1</div>
+  <h2>What is a Digital Signature?</h2>
+  <p>
+    A <strong>digital signature</strong> is the cryptographic equivalent of a handwritten signature,
+    but far more powerful. It provides three critical guarantees:
+  </p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="icon">🔐</div>
+      <h3>Authentication</h3>
+      <p>Proves the signature was created by someone with the private key.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🛡️</div>
+      <h3>Integrity</h3>
+      <p>Any change to the message invalidates the signature.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🚫</div>
+      <h3>Non-repudiation</h3>
+      <p>The signer cannot deny having signed the message.</p>
+    </div>
+  </div>
+
+  <h3>The two-key model</h3>
+  <p>
+    Digital signatures use <strong>asymmetric cryptography</strong>: you get a pair of keys.
+    The <span class="hl-orange">private key</span> is kept secret and used to sign.
+    The <span class="hl-green">public key</span> is shared with the world and used to verify.
+    The magic: anyone can verify, but only the private key holder can sign.
+  </p>
+
+  <div class="flow-diagram">
+    <div class="flow-box" style="border-color:var(--orange);">
+      <h4 style="color:var(--orange);">Private Key</h4>
+      <p>sign(message) → signature</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">
+      <h4>Signature</h4>
+      <p>(r, s) — a pair of numbers</p>
+    </div>
+    <div class="flow-arrow">+</div>
+    <div class="flow-box">
+      <h4>Message</h4>
+      <p>any data / document</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box" style="border-color:var(--green);">
+      <h4 style="color:var(--green);">Public Key</h4>
+      <p>verify(message, sig) → ✓/✗</p>
+    </div>
+  </div>
+
+  <p>
+    ECDSA is one specific construction of this model using <strong>elliptic curves</strong>.
+    To understand it, we need to start with the math.
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ CURVES -->
+<div id="curves" class="section">
+  <div class="section-label">Section 2</div>
+  <h2>Elliptic Curves</h2>
+  <p>
+    An elliptic curve over the real numbers is defined by the equation:
+  </p>
+  <div class="math-box">
+    $$y^2 = x^3 + ax + b$$
+  </div>
+  <p>
+    where $a$ and $b$ are constants. For cryptography, we need the curve to be <strong>non-singular</strong>,
+    meaning $4a^3 + 27b^2 \neq 0$ (no self-intersections or cusps).
+  </p>
+
+  <p>
+    Adjust the parameters below to see how the curve changes. Notice the characteristic
+    <strong>symmetry about the x-axis</strong> — for every point $(x, y)$ on the curve,
+    $(x, -y)$ is also on the curve.
+  </p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>Elliptic Curve Explorer</h3>
+      <span style="font-size:0.8rem;color:var(--muted);">$y^2 = x^3 + ax + b$</span>
+    </div>
+    <div class="viz-body">
+      <canvas id="curveCanvas" width="860" height="400"></canvas>
+    </div>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>a <span class="ctrl-val" id="curveAVal">-1</span></label>
+        <input type="range" id="curveASlider" min="-5" max="5" step="0.1" value="-1">
+      </div>
+      <div class="ctrl-group">
+        <label>b <span class="ctrl-val" id="curveBVal">1</span></label>
+        <input type="range" id="curveBSlider" min="-5" max="5" step="0.1" value="1">
+      </div>
+      <div class="ctrl-group" style="align-self:flex-end;">
+        <button class="btn" id="resetCurveBtn">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="warning-box">
+    <p><strong>⚠️ Real numbers vs. finite fields:</strong> The visualizations above use real numbers ($\mathbb{R}$)
+    for intuition. Real ECDSA operates over a <strong>finite field</strong> $\mathbb{F}_p$ (integers mod a large prime $p$).
+    The same equations hold, but points wrap around modularly — think of them as living on a torus rather than an infinite plane.
+    The geometric rules (addition, doubling) still apply algebraically.</p>
+  </div>
+
+  <h3>The curve over a finite field</h3>
+  <p>
+    When we work mod $p$, valid points are integer pairs $(x, y)$ where $y^2 \equiv x^3 + ax + b \pmod{p}$.
+    The scatter plot below shows all valid points for a small prime. Despite looking random,
+    the same <strong>algebraic group structure</strong> is present.
+  </p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>Curve over $\mathbb{F}_p$ (finite field)</h3>
+      <span style="font-size:0.8rem;color:var(--muted);" id="fieldInfo">p = 61, a = -1, b = 1</span>
+    </div>
+    <div class="viz-body">
+      <canvas id="fieldCanvas" width="560" height="560"></canvas>
+    </div>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Prime p <span class="ctrl-val" id="fieldPVal">61</span></label>
+        <input type="range" id="fieldPSlider" min="7" max="211" step="2" value="61">
+      </div>
+      <div class="ctrl-group">
+        <label>a <span class="ctrl-val" id="fieldAVal">-1</span></label>
+        <input type="range" id="fieldASlider" min="-5" max="5" step="1" value="-1">
+      </div>
+      <div class="ctrl-group">
+        <label>b <span class="ctrl-val" id="fieldBVal">1</span></label>
+        <input type="range" id="fieldBSlider" min="-5" max="5" step="1" value="1">
+      </div>
+      <div id="fieldStats" class="stat-row" style="align-self:flex-end;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ ADDITION -->
+<div id="addition" class="section">
+  <div class="section-label">Section 3</div>
+  <h2>Point Addition</h2>
+  <p>
+    The key operation on an elliptic curve is <strong>point addition</strong>.
+    Given two points $P$ and $Q$ on the curve, we can find a third point $P + Q$
+    that is also on the curve. This is defined geometrically:
+  </p>
+
+  <div class="step-list">
+    <div class="step-item">
+      <div class="step-num">1</div>
+      <div>
+        <h4>Draw a line through P and Q</h4>
+        <p>This line will intersect the curve at a third point (by Bézout's theorem).</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">2</div>
+      <div>
+        <h4>Reflect over the x-axis</h4>
+        <p>The reflection of that third intersection point is $P + Q$.</p>
+      </div>
+    </div>
+  </div>
+
+  <p>
+    Click two points on the curve below to see the addition in action.
+    The <span class="hl-purple">purple line</span> connects $P$ and $Q$ and hits a third point.
+    The <span class="hl-green">green point</span> (reflection) is the result $P + Q$.
+  </p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>Interactive Point Addition</h3>
+      <div style="display:flex;gap:.5rem;">
+        <button class="btn" id="clearPointsBtn">Clear Points</button>
+      </div>
+    </div>
+    <div class="viz-body">
+      <canvas id="addCanvas" width="860" height="400"></canvas>
+    </div>
+    <div class="controls">
+      <div id="addInfo" style="font-size:0.85rem;color:var(--muted);">
+        Click on the curve to place points. First click = P, second click = Q, then see P + Q.
+      </div>
+    </div>
+  </div>
+
+  <h3>Point Doubling</h3>
+  <p>
+    When $P = Q$, we can't draw a line through two distinct points. Instead, we draw the
+    <strong>tangent line</strong> at $P$ and reflect its intersection with the curve.
+    This gives $2P = P + P$. Click the button to see doubling:
+  </p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>Point Doubling (Tangent Method)</h3>
+      <div style="display:flex;gap:.5rem;">
+        <button class="btn primary" id="doubleBtn">Show Doubling</button>
+        <button class="btn" id="clearDoubleBtn">Clear</button>
+      </div>
+    </div>
+    <div class="viz-body">
+      <canvas id="doubleCanvas" width="860" height="400"></canvas>
+    </div>
+    <div class="controls">
+      <div id="doubleInfo" style="font-size:0.85rem;color:var(--muted);">
+        Click on the curve to place P, then press "Show Doubling" to see 2P.
+      </div>
+    </div>
+  </div>
+
+  <h3>Algebraic Formula</h3>
+  <p>
+    For points $P = (x_1, y_1)$ and $Q = (x_2, y_2)$ on $y^2 = x^3 + ax + b$:
+  </p>
+  <div class="math-box">
+    $$\lambda = \begin{cases} \frac{y_2 - y_1}{x_2 - x_1} & \text{if } P \neq Q \\[6pt] \frac{3x_1^2 + a}{2y_1} & \text{if } P = Q \end{cases}$$
+    $$x_3 = \lambda^2 - x_1 - x_2, \qquad y_3 = \lambda(x_1 - x_3) - y_1$$
+  </div>
+  <p>
+    The <strong>identity element</strong> is a special "point at infinity" $\mathcal{O}$,
+    acting like zero: $P + \mathcal{O} = P$. And $P + (-P) = \mathcal{O}$, where $-P = (x, -y)$.
+  </p>
+
+  <details>
+    <summary>Why does the geometric rule work?</summary>
+    <div class="inner">
+      <p>
+        A line $y = \lambda x + c$ and the curve $y^2 = x^3 + ax + b$ intersect when:
+      </p>
+      <div class="math-box">
+        $$(\lambda x + c)^2 = x^3 + ax + b \implies x^3 - \lambda^2 x^2 + (a - 2\lambda c)x + (b - c^2) = 0$$
+      </div>
+      <p>
+        This is a cubic in $x$ with three roots (counting multiplicity) corresponding to the
+        x-coordinates of $P$, $Q$, and the third intersection point $R' = (x_3, -y_3)$.
+        By Vieta's formulas: $x_1 + x_2 + x_3' = \lambda^2$, so $x_3 = \lambda^2 - x_1 - x_2$.
+      </p>
+    </div>
+  </details>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ SCALAR MULT -->
+<div id="scalar" class="section">
+  <div class="section-label">Section 4</div>
+  <h2>Scalar Multiplication</h2>
+  <p>
+    If we can add points, we can also multiply by a scalar: $nP = \underbrace{P + P + \cdots + P}_{n \text{ times}}$.
+    This is called <strong>scalar multiplication</strong>.
+  </p>
+
+  <p>
+    The interactive below computes $nP$ step by step for a point $P$ on the curve.
+    Watch how the result "jumps around" the curve, seemingly at random:
+  </p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>Scalar Multiplication: compute $nP$</h3>
+    </div>
+    <div class="viz-body">
+      <canvas id="scalarCanvas" width="860" height="420"></canvas>
+    </div>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>n (scalar) <span class="ctrl-val" id="scalarNVal">3</span></label>
+        <input type="range" id="scalarNSlider" min="1" max="20" step="1" value="3">
+      </div>
+      <div class="ctrl-group">
+        <label>Animation <span class="ctrl-val" id="scalarAnimVal">On</span></label>
+        <button class="btn primary" id="scalarAnimBtn">Animate</button>
+      </div>
+    </div>
+  </div>
+
+  <p>
+    This "random jumping" is crucial. After just a few additions, the relationship between
+    $n$ and $nP$ looks completely chaotic — even though each step is deterministic.
+    This is the foundation of the security.
+  </p>
+
+  <details>
+    <summary>Double-and-Add: efficient computation</summary>
+    <div class="inner">
+      <p>
+        Computing $nP$ naively requires $n$ additions. But using the <strong>double-and-add</strong> method
+        (analogous to exponentiation by squaring), we only need $O(\log n)$ operations:
+      </p>
+      <p>
+        Express $n$ in binary. For each bit from MSB to LSB: double the accumulator, and if the bit is 1,
+        add $P$. For example, $21P = 2(2(2(2(2(P) + P) + P) + P) + P)$.
+      </p>
+      <p>
+        This means computing $nP$ for a 256-bit $n$ takes at most 510 point operations — fast!
+      </p>
+    </div>
+  </details>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ DISCRETE LOG -->
+<div id="discrete-log" class="section">
+  <div class="section-label">Section 5</div>
+  <h2>The Trap Door: Elliptic Curve Discrete Logarithm Problem</h2>
+  <p>
+    Here's the crux of elliptic curve cryptography:
+  </p>
+
+  <div class="theorem-box">
+    <div class="theorem-title">The One-Way Function</div>
+    <p>
+      Given a base point $G$ and a scalar $d$, computing $Q = dG$ is <strong>easy</strong> (polynomial time).
+    </p>
+    <p>
+      Given $G$ and $Q$, finding $d$ such that $Q = dG$ is the <strong>Elliptic Curve Discrete Logarithm Problem (ECDLP)</strong>
+      — believed to be <strong>hard</strong> (no known sub-exponential algorithm for well-chosen curves).
+    </p>
+  </div>
+
+  <div class="cards">
+    <div class="card" style="border-color:var(--green);">
+      <h3 style="color:var(--green);">✓ Easy: d, G → dG</h3>
+      <p>Scalar multiplication: $O(\log d)$ steps via double-and-add. Milliseconds even for 256-bit numbers.</p>
+    </div>
+    <div class="card" style="border-color:var(--red);">
+      <h3 style="color:var(--red);">✗ Hard: G, dG → d</h3>
+      <p>Discrete logarithm: best known classical algorithm is $O(\sqrt{n})$ — for secp256k1 this is ~$2^{128}$ operations. Infeasible.</p>
+    </div>
+  </div>
+
+  <p>
+    To build intuition for why this is hard, the scatter plot below shows the mapping
+    $n \mapsto nG$ for points on a small finite field curve. Each dot represents $nP$ for $n = 1, 2, \ldots$
+    — see how the x-coordinates jump around unpredictably:
+  </p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>Visualization: $nG$ appears random</h3>
+    </div>
+    <div class="viz-body">
+      <canvas id="trapCanvas" width="860" height="300"></canvas>
+    </div>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Max n <span class="ctrl-val" id="trapNVal">40</span></label>
+        <input type="range" id="trapNSlider" min="5" max="60" step="1" value="40">
+      </div>
+    </div>
+  </div>
+
+  <p>
+    Each <span class="hl-cyan">cyan dot</span> is the x-coordinate of $nP$ (ordered left-to-right by $n$).
+    The sequence appears completely random — there's no visible pattern to predict $nP$ from $n$
+    or to recover $n$ from $nP$. This pseudorandomness is what makes the ECDLP hard.
+  </p>
+
+  <details>
+    <summary>Comparison with RSA</summary>
+    <div class="inner">
+      <p>
+        RSA relies on the hardness of integer factorization: $n = pq$ where $p, q$ are large primes.
+        The best known algorithm (General Number Field Sieve) runs in sub-exponential time:
+        $L_n[1/3] \approx \exp\!\bigl((64/9)^{1/3} (\ln n)^{1/3}(\ln \ln n)^{2/3}\bigr)$.
+      </p>
+      <p>
+        ECDLP's best known classical algorithm (Pollard's rho) runs in $O(\sqrt{n})$ — fully exponential.
+        This means <strong>elliptic curves provide more security per bit</strong>:
+      </p>
+      <ul>
+        <li>256-bit ECC ≈ 3072-bit RSA security level</li>
+        <li>384-bit ECC ≈ 7680-bit RSA security level</li>
+      </ul>
+      <p>
+        Smaller keys mean faster operations, less bandwidth, and less energy — critical for embedded devices and blockchains.
+      </p>
+    </div>
+  </details>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ KEYS -->
+<div id="keys" class="section">
+  <div class="section-label">Section 6</div>
+  <h2>Key Generation</h2>
+  <p>
+    Now we have all the building blocks. Let's generate an ECDSA key pair:
+  </p>
+
+  <div class="step-list">
+    <div class="step-item">
+      <div class="step-num">1</div>
+      <div>
+        <h4>Choose a curve and base point</h4>
+        <p>Everyone agrees on a standard curve (e.g., secp256k1 for Bitcoin, P-256 for TLS).
+        The curve defines the field $\mathbb{F}_p$, parameters $a, b$, and a <strong>base point</strong> $G$
+        of large prime order $n$ (meaning $nG = \mathcal{O}$).</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num" style="background:rgba(210,153,34,0.15);border-color:rgba(210,153,34,0.3);color:var(--orange);">2</div>
+      <div>
+        <h4 style="color:var(--orange);">Pick a random private key $d$</h4>
+        <p>Choose a random integer $d \in \{1, 2, \ldots, n-1\}$. This is your <strong>private key</strong>.
+        Keep it secret!</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num" style="background:rgba(63,185,80,0.15);border-color:rgba(63,185,80,0.3);color:var(--green);">3</div>
+      <div>
+        <h4 style="color:var(--green);">Compute the public key $Q = dG$</h4>
+        <p>Scalar-multiply the base point by your private key. The result $Q$ is your <strong>public key</strong>.
+        Share it with the world!</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-diagram">
+    <div class="flow-box" style="border-color:var(--orange);min-width:200px;">
+      <h4 style="color:var(--orange);">Private Key (d)</h4>
+      <p style="font-family:monospace;font-size:0.75rem;">random 256-bit integer</p>
+    </div>
+    <div class="flow-arrow">× $G$ →</div>
+    <div class="flow-box" style="border-color:var(--green);min-width:200px;">
+      <h4 style="color:var(--green);">Public Key (Q = dG)</h4>
+      <p style="font-family:monospace;font-size:0.75rem;">point on the curve (x, y)</p>
+    </div>
+  </div>
+
+  <p>
+    The one-way property guarantees: anyone can compute $Q$ from $d$,
+    but nobody can recover $d$ from $Q$.
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ SIGNING -->
+<div id="signing" class="section">
+  <div class="section-label">Section 7</div>
+  <h2>Signing a Message</h2>
+  <p>
+    To sign a message $m$, the signer with private key $d$ does the following:
+  </p>
+
+  <div class="step-list">
+    <div class="step-item">
+      <div class="step-num">1</div>
+      <div>
+        <h4>Hash the message</h4>
+        <p>Compute $e = H(m)$ where $H$ is a cryptographic hash (e.g., SHA-256).
+        Treat $e$ as an integer.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">2</div>
+      <div>
+        <h4>Generate a random nonce $k$</h4>
+        <p>Pick a random $k \in \{1, \ldots, n-1\}$. This must be <strong>truly random</strong>
+        and <strong>never reused</strong> — reusing $k$ leaks the private key!</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">3</div>
+      <div>
+        <h4>Compute the curve point</h4>
+        <p>Calculate $(x_1, y_1) = kG$. Let $r = x_1 \bmod n$.
+        If $r = 0$, pick a new $k$.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">4</div>
+      <div>
+        <h4>Compute $s$</h4>
+        <p>$s = k^{-1}(e + d \cdot r) \bmod n$.
+        If $s = 0$, pick a new $k$.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="theorem-box">
+    <div class="theorem-title">ECDSA Signature</div>
+    <p>The signature is the pair $(r, s)$. Both values are integers mod $n$ (256-bit for secp256k1).</p>
+  </div>
+
+  <div class="warning-box">
+    <p><strong>⚠️ Why nonce reuse is catastrophic:</strong> If you sign two messages $m_1, m_2$ with the same $k$,
+    you get $(r, s_1)$ and $(r, s_2)$ where $s_i = k^{-1}(H(m_i) + dr)$.
+    Then $s_1 - s_2 = k^{-1}(H(m_1) - H(m_2))$, so $k = \frac{H(m_1) - H(m_2)}{s_1 - s_2}$
+    and $d = \frac{s_1 k - H(m_1)}{r}$. This is exactly how the PlayStation 3 was hacked in 2010!</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ VERIFICATION -->
+<div id="verification" class="section">
+  <div class="section-label">Section 8</div>
+  <h2>Verifying a Signature</h2>
+  <p>
+    Given the message $m$, signature $(r, s)$, and public key $Q$,
+    a verifier checks:
+  </p>
+
+  <div class="step-list">
+    <div class="step-item">
+      <div class="step-num">1</div>
+      <div>
+        <h4>Hash the message</h4>
+        <p>Compute $e = H(m)$, same as the signer.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">2</div>
+      <div>
+        <h4>Compute $w = s^{-1} \bmod n$</h4>
+        <p>The modular inverse of $s$.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">3</div>
+      <div>
+        <h4>Compute $u_1 = e \cdot w \bmod n$ and $u_2 = r \cdot w \bmod n$</h4>
+        <p>These are the "weights" for the base point and public key.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">4</div>
+      <div>
+        <h4>Compute $(x_2, y_2) = u_1 G + u_2 Q$</h4>
+        <p>A linear combination of two scalar multiplications.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num" style="background:rgba(63,185,80,0.15);border-color:rgba(63,185,80,0.3);color:var(--green);">5</div>
+      <div>
+        <h4 style="color:var(--green);">Accept if $x_2 \bmod n = r$</h4>
+        <p>The signature is valid if and only if this holds.</p>
+      </div>
+    </div>
+  </div>
+
+  <details>
+    <summary>Why does verification work? (The math)</summary>
+    <div class="inner">
+      <p>
+        During signing: $s = k^{-1}(e + dr) \bmod n$, which means $k = s^{-1}(e + dr) \bmod n$.
+      </p>
+      <p>
+        During verification, the verifier computes:
+      </p>
+      <div class="math-box">
+        $$u_1 G + u_2 Q = ewG + rwQ = ewG + rwdG = (e + dr)wG = (e+dr)s^{-1}G$$
+      </div>
+      <p>
+        Since $k = s^{-1}(e + dr) \bmod n$, this equals $kG$. The x-coordinate of $kG$ is exactly $r$
+        (from step 3 of signing). So the check $x_2 \equiv r \pmod{n}$ passes! ✓
+      </p>
+      <p>
+        Conversely, a forged signature would require solving for $s$ such that
+        $u_1 G + u_2 Q$ yields the right x-coordinate — without knowing $d$ — which requires
+        solving the discrete logarithm problem.
+      </p>
+    </div>
+  </details>
+
+  <p>
+    The diagram below shows the verification computation visually:
+    $u_1 G$ and $u_2 Q$ are computed independently, then added on the curve:
+  </p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>Verification: $u_1 G + u_2 Q = kG$</h3>
+    </div>
+    <div class="viz-body" style="text-align:center;padding:2rem;">
+      <div class="flow-diagram">
+        <div class="flow-box" style="border-color:var(--accent);">
+          <h4 style="color:var(--accent);">$u_1 = e \cdot s^{-1}$</h4>
+          <p>→ $u_1 G$</p>
+        </div>
+        <div class="flow-arrow" style="font-size:2rem;">+</div>
+        <div class="flow-box" style="border-color:var(--purple);">
+          <h4 style="color:var(--purple);">$u_2 = r \cdot s^{-1}$</h4>
+          <p>→ $u_2 Q = u_2 dG$</p>
+        </div>
+        <div class="flow-arrow" style="font-size:2rem;">=</div>
+        <div class="flow-box" style="border-color:var(--green);">
+          <h4 style="color:var(--green);">$(u_1 + u_2 d)G$</h4>
+          <p>= $kG$ → check x = $r$</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ DEMO -->
+<div id="demo" class="section">
+  <div class="section-label">Section 9</div>
+  <h2>Interactive Demo</h2>
+  <p>
+    Walk through the full ECDSA process on a small curve ($p = 211$, curve $y^2 = x^3 + 2$).
+    These are toy parameters — real ECDSA uses 256-bit+ primes — but the math is identical.
+  </p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>ECDSA on a Toy Curve</h3>
+      <div style="display:flex;gap:.5rem;">
+        <button class="btn primary" id="demoGenerateBtn">Generate Keys</button>
+        <button class="btn" id="demoSignBtn">Sign Message</button>
+        <button class="btn" id="demoVerifyBtn">Verify Signature</button>
+        <button class="btn" id="demoTamperBtn">Tamper Message</button>
+      </div>
+    </div>
+    <div class="viz-body">
+      <canvas id="demoCanvas" width="860" height="420"></canvas>
+    </div>
+    <div id="demoOutput" style="padding:0.75rem 1.25rem;font-family:monospace;font-size:0.82rem;line-height:1.8;border-top:1px solid var(--border);color:var(--muted);max-height:300px;overflow-y:auto;">
+      <p>Press <strong>Generate Keys</strong> to start.</p>
+    </div>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Message <span class="ctrl-val" id="demoMsgVal">42</span></label>
+        <input type="range" id="demoMsgSlider" min="1" max="200" step="1" value="42">
+      </div>
+      <div id="demoKeyStats" class="stat-row" style="align-self:flex-end;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ SECURITY -->
+<div class="section">
+  <div class="section-label">Section 10</div>
+  <h2>Why Is ECDSA Secure?</h2>
+  <p>
+    ECDSA's security rests on several pillars:
+  </p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="icon">🔒</div>
+      <h3>ECDLP Hardness</h3>
+      <p>Recovering $d$ from $Q = dG$ requires ~$\sqrt{n}$ operations. For secp256k1, that's $2^{128}$ — more than the number of atoms in the observable universe squared.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🎲</div>
+      <h3>Random Nonce</h3>
+      <p>Each signature uses a fresh random $k$. This ensures signatures on the same message look different, preventing statistical attacks.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🔗</div>
+      <h3>Hash Function</h3>
+      <p>SHA-256 is preimage-resistant: given a hash output, finding an input is infeasible. This prevents existential forgery.</p>
+    </div>
+    <div class="card">
+      <div class="icon">📐</div>
+      <h3>Curve Choice</h3>
+      <p>Standard curves are carefully chosen to resist known attacks: twist attacks, small subgroup attacks, invalid curve attacks, etc.</p>
+    </div>
+  </div>
+
+  <h3>Attack costs</h3>
+  <p>
+    For secp256k1 (the Bitcoin curve, order $n \approx 2^{256}$):
+  </p>
+  <div class="cards">
+    <div class="card" style="border-color:var(--green);">
+      <h3 style="color:var(--green);">Brute force</h3>
+      <p>Try all $d \in \{1, \ldots, n-1\}$: $O(2^{256})$ operations. Completely infeasible.</p>
+    </div>
+    <div class="card" style="border-color:var(--orange);">
+      <h3 style="color:var(--orange);">Pollard's rho (best classical)</h3>
+      <p>Birthday-paradox-based: $O(\sqrt{n}) = O(2^{128})$. Still infeasible (~$10^{28}$ years on current hardware).</p>
+    </div>
+    <div class="card" style="border-color:var(--red);">
+      <h3 style="color:var(--red);">Shor's algorithm (quantum)</h3>
+      <p>Solves ECDLP in $O((\log n)^3)$ on a large quantum computer. This is why post-quantum cryptography is being standardized.</p>
+    </div>
+  </div>
+
+  <p>
+    The interactive below shows why brute force fails: even for our tiny toy curve,
+    the x-coordinates of $dG$ for different $d$ values are uniformly scattered:
+  </p>
+
+  <div class="viz-container">
+    <div class="viz-header">
+      <h3>Brute Force Search Space</h3>
+    </div>
+    <div class="viz-body">
+      <canvas id="bruteCanvas" width="860" height="260"></canvas>
+    </div>
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Private key d <span class="ctrl-val" id="bruteDVal">?</span></label>
+        <button class="btn primary" id="bruteRevealBtn">Reveal d</button>
+      </div>
+      <div class="ctrl-group">
+        <label>Speed <span class="ctrl-val" id="bruteSpeedVal">100</span></label>
+        <input type="range" id="bruteSpeedSlider" min="10" max="500" step="10" value="100">
+      </div>
+      <div class="ctrl-group" style="align-self:flex-end;">
+        <button class="btn" id="bruteNewBtn">New Key</button>
+        <button class="btn" id="bruteStartBtn">Start Search</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:3rem 2rem;color:var(--muted);font-size:0.85rem;border-top:1px solid var(--border);">
+  ECDSA (Johnson & Menezes, 2001). Interactive visualizations built with vanilla JavaScript &amp; Canvas.
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITY
+═══════════════════════════════════════════════════════════════════════════ */
+const C = {
+  bg:'#0d1117', surface:'#161b22', surface2:'#21262d', border:'#30363d',
+  text:'#e6edf3', muted:'#8b949e',
+  accent:'#58a6ff', green:'#3fb950', orange:'#d29922', red:'#f85149',
+  purple:'#bc8cff', cyan:'#56d4dd',
+};
+const hex2rgba = (h,a) => `rgba(${parseInt(h.slice(1,3),16)},${parseInt(h.slice(3,5),16)},${parseInt(h.slice(5,7),16)},${a})`;
+
+function clearCanvas(c, col=C.surface) {
+  c.fillStyle = col; c.fillRect(0,0,c.canvas.width,c.canvas.height);
+}
+
+/* Modular arithmetic helpers */
+function mod(a, n) { return ((a % n) + n) % n; }
+function modInv(a, n) {
+  let [old_r, r] = [a, n], [old_s, s] = [1, 0];
+  while (r !== 0) { const q = Math.floor(old_r / r); [old_r, r] = [r, old_r - q * r]; [old_s, s] = [s, old_s - q * s]; }
+  return mod(old_s, n);
+}
+function modSqrt(a, p) {
+  a = mod(a, p);
+  if (a === 0) return 0;
+  if (p % 4 === 3) return modPow(a, (p + 1) / 4, p);
+  // Tonelli-Shanks for general case
+  let q = p - 1, s = 0;
+  while (q % 2 === 0) { q /= 2; s++; }
+  let z = 2;
+  while (modPow(z, (p - 1) / 2, p) !== p - 1) z++;
+  let m = s, c = modPow(z, q, p), t = modPow(a, q, p), r2 = modPow(a, (q + 1) / 2, p);
+  while (true) {
+    if (t === 1) return r2;
+    let i = 0; let tmp = t;
+    while (tmp !== 1 && i < m) { tmp = modPow(tmp, 2, p); i++; }
+    const b = modPow(c, modPow(2, m - i - 1, p - 1), p);
+    m = i; c = modPow(b, 2, p); t = mod(t * c, p); r2 = mod(r2 * b, p);
+  }
+}
+function modPow(base, exp, mod2) {
+  let result = 1; base = mod(base, mod2);
+  while (exp > 0) { if (exp % 2 === 1) result = mod(result * base, mod2); exp = Math.floor(exp / 2); base = mod(base * base, mod2); }
+  return result;
+}
+
+/* Elliptic curve point operations over Fp */
+function ecAdd(P, Q, a, p) {
+  if (!P) return Q; if (!Q) return P;
+  const [x1,y1] = P, [x2,y2] = Q;
+  if (x1 === x2 && mod(y1 + y2, p) === 0) return null; // P + (-P) = O
+  let lam;
+  if (x1 === x2 && y1 === y2) { lam = mod((3 * x1 * x1 + a) * modInv(2 * y1, p), p); }
+  else { lam = mod((y2 - y1) * modInv(mod(x2 - x1, p), p), p); }
+  const x3 = mod(lam * lam - x1 - x2, p);
+  const y3 = mod(lam * (x1 - x3) - y1, p);
+  return [x3, y3];
+}
+function ecMul(k, P, a, p) {
+  let R = null, Q = P;
+  while (k > 0) { if (k % 2 === 1) R = ecAdd(R, Q, a, p); Q = ecAdd(Q, Q, a, p); k = Math.floor(k / 2); }
+  return R;
+}
+
+/* Real-valued curve (for visualization) */
+function curveYReal(x, a, b) {
+  const rhs = x*x*x + a*x + b;
+  if (rhs < 0) return null;
+  return Math.sqrt(rhs);
+}
+
+/* All points on curve over Fp */
+function allPoints(a, b, p) {
+  const pts = [null]; // point at infinity
+  for (let x = 0; x < p; x++) {
+    const rhs = mod(x*x*x + a*x + b, p);
+    // Check if rhs is a quadratic residue
+    if (modPow(rhs, (p-1)/2, p) === 1 || rhs === 0) {
+      const y = modSqrt(rhs, p);
+      pts.push([x, y]);
+      if (y !== 0 && mod(-y, p) !== y) pts.push([x, mod(-y, p)]);
+    }
+  }
+  return pts;
+}
+
+/* Find order of a point (naive) */
+function pointOrder(P, a, p, maxOrder) {
+  let R = P; let order = 1;
+  const limit = maxOrder || p + 2;
+  while (order < limit) {
+    if (R === null) return order;
+    R = ecAdd(R, P, a, p);
+    order++;
+  }
+  return order;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIZ 1: REAL CURVE EXPLORER
+═══════════════════════════════════════════════════════════════════════════ */
+function drawCurve() {
+  const a = parseFloat(document.getElementById('curveASlider').value);
+  const b = parseFloat(document.getElementById('curveBSlider').value);
+  document.getElementById('curveAVal').textContent = a.toFixed(1);
+  document.getElementById('curveBVal').textContent = b.toFixed(1);
+
+  const cv = document.getElementById('curveCanvas');
+  const c = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  clearCanvas(c, C.bg);
+
+  const cx = W/2, cy = H/2, sc = 55;
+
+  // Grid
+  c.strokeStyle = hex2rgba(C.border, 0.4); c.lineWidth = 0.5;
+  for (let i = -8; i <= 8; i++) {
+    c.beginPath(); c.moveTo(cx+i*sc, 0); c.lineTo(cx+i*sc, H); c.stroke();
+    c.beginPath(); c.moveTo(0, cy+i*sc); c.lineTo(W, cy+i*sc); c.stroke();
+  }
+  // Axes
+  c.strokeStyle = C.border; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(0, cy); c.lineTo(W, cy); c.stroke();
+  c.beginPath(); c.moveTo(cx, 0); c.lineTo(cx, H); c.stroke();
+  c.fillStyle = C.muted; c.font = '10px sans-serif';
+  c.textAlign = 'right'; c.fillText('x', W-5, cy-5);
+  c.textAlign = 'left'; c.fillText('y', cx+5, 12);
+
+  // Discriminant check
+  const disc = 4*a*a*a + 27*b*b;
+  const singular = Math.abs(disc) < 1e-6;
+
+  if (!singular) {
+    // Draw curve
+    c.lineWidth = 2.5;
+    // Upper half
+    c.beginPath();
+    let started = false;
+    for (let px = 0; px < W; px++) {
+      const x = (px - cx) / sc;
+      const y = curveYReal(x, a, b);
+      if (y !== null && y < 10) {
+        const py = cy - y * sc;
+        if (!started) { c.moveTo(px, py); started = true; } else c.lineTo(px, py);
+      } else { started = false; }
+    }
+    c.strokeStyle = C.accent; c.stroke();
+    // Lower half
+    c.beginPath(); started = false;
+    for (let px = 0; px < W; px++) {
+      const x = (px - cx) / sc;
+      const y = curveYReal(x, a, b);
+      if (y !== null && y < 10) {
+        const py = cy + y * sc;
+        if (!started) { c.moveTo(px, py); started = true; } else c.lineTo(px, py);
+      } else { started = false; }
+    }
+    c.strokeStyle = C.accent; c.stroke();
+  }
+
+  // Label
+  c.fillStyle = C.text; c.font = 'bold 13px sans-serif'; c.textAlign = 'left';
+  const discStr = singular ? 'SINGULAR' : `Δ = ${disc.toFixed(1)}`;
+  c.fillText(`y² = x³ + (${a.toFixed(1)})x + (${b.toFixed(1)})    [${discStr}]`, 15, 22);
+
+  if (singular) {
+    c.fillStyle = C.red; c.font = '14px sans-serif'; c.textAlign = 'center';
+    c.fillText('Singular curve — not suitable for cryptography', W/2, H/2);
+  }
+}
+
+document.getElementById('curveASlider').addEventListener('input', drawCurve);
+document.getElementById('curveBSlider').addEventListener('input', drawCurve);
+document.getElementById('resetCurveBtn').addEventListener('click', () => {
+  document.getElementById('curveASlider').value = -1;
+  document.getElementById('curveBSlider').value = 1;
+  drawCurve();
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIZ 2: FINITE FIELD CURVE
+═══════════════════════════════════════════════════════════════════════════ */
+function drawFieldCurve() {
+  let p = parseInt(document.getElementById('fieldPSlider').value);
+  // Ensure p is prime (roughly — just skip evens)
+  if (p % 2 === 0) p++;
+  const a = parseInt(document.getElementById('fieldASlider').value);
+  const b = parseInt(document.getElementById('fieldBSlider').value);
+  document.getElementById('fieldPVal').textContent = p;
+  document.getElementById('fieldAVal').textContent = a;
+  document.getElementById('fieldBVal').textContent = b;
+
+  const cv = document.getElementById('fieldCanvas');
+  const c = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  clearCanvas(c, C.bg);
+
+  const margin = 35;
+  const sz = Math.min((W - 2*margin) / p, (H - 2*margin) / p);
+  const ox = (W - p * sz) / 2, oy = (H - p * sz) / 2;
+
+  // Grid background
+  c.fillStyle = hex2rgba(C.border, 0.1);
+  c.fillRect(ox, oy, p*sz, p*sz);
+
+  // Find points
+  const pts = [];
+  for (let x = 0; x < p; x++) {
+    const rhs = mod(x*x*x + a*x + b, p);
+    for (let y = 0; y < p; y++) {
+      if (mod(y*y, p) === rhs) pts.push([x, y]);
+    }
+  }
+
+  // Draw points
+  pts.forEach(([x,y]) => {
+    const px = ox + x * sz + sz/2;
+    const py = oy + (p-1-y) * sz + sz/2;
+    c.fillStyle = C.accent;
+    c.beginPath(); c.arc(px, py, Math.max(2, sz*0.3), 0, Math.PI*2); c.fill();
+  });
+
+  // Axes
+  c.strokeStyle = C.border; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(ox, oy + p*sz); c.lineTo(ox + p*sz, oy + p*sz); c.stroke();
+  c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox, oy + p*sz); c.stroke();
+  c.fillStyle = C.muted; c.font = '10px sans-serif'; c.textAlign = 'center';
+  c.fillText('x', ox + p*sz/2, oy + p*sz + 18);
+  c.save(); c.translate(ox - 18, oy + p*sz/2); c.rotate(-Math.PI/2); c.fillText('y',0,0); c.restore();
+
+  // Tick marks (only for small p)
+  if (p <= 100) {
+    c.font = '8px sans-serif'; c.fillStyle = hex2rgba(C.muted, 0.6);
+    const step = p <= 30 ? 1 : p <= 60 ? 5 : 10;
+    for (let i = 0; i < p; i += step) {
+      c.textAlign = 'center';
+      c.fillText(i, ox + i*sz + sz/2, oy + p*sz + 12);
+      c.textAlign = 'right';
+      c.fillText(i, ox - 4, oy + (p-i)*sz - sz/2 + 3);
+    }
+  }
+
+  document.getElementById('fieldInfo').textContent = `p = ${p}, a = ${a}, b = ${b}`;
+  document.getElementById('fieldStats').innerHTML =
+    `<div class="stat-chip">Points: <span>${pts.length + 1}</span></div>` +
+    `<div class="stat-chip">p = <span>${p}</span></div>`;
+}
+
+['fieldPSlider','fieldASlider','fieldBSlider'].forEach(id =>
+  document.getElementById(id).addEventListener('input', drawFieldCurve)
+);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIZ 3: POINT ADDITION (interactive)
+═══════════════════════════════════════════════════════════════════════════ */
+let addPoints = [];
+const ADD_CURVE_A = -1, ADD_CURVE_B = 1;
+
+function drawAddCanvas() {
+  const cv = document.getElementById('addCanvas');
+  const c = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const cx = W/2, cy = H/2, sc = 55;
+  clearCanvas(c, C.bg);
+
+  // Grid
+  c.strokeStyle = hex2rgba(C.border, 0.4); c.lineWidth = 0.5;
+  for (let i = -8; i <= 8; i++) {
+    c.beginPath(); c.moveTo(cx+i*sc, 0); c.lineTo(cx+i*sc, H); c.stroke();
+    c.beginPath(); c.moveTo(0, cy+i*sc); c.lineTo(W, cy+i*sc); c.stroke();
+  }
+  c.strokeStyle = C.border; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(0, cy); c.lineTo(W, cy); c.stroke();
+  c.beginPath(); c.moveTo(cx, 0); c.lineTo(cx, H); c.stroke();
+
+  const a = ADD_CURVE_A, b = ADD_CURVE_B;
+
+  // Draw curve
+  c.lineWidth = 2;
+  [1, -1].forEach(sign => {
+    c.beginPath();
+    let started = false;
+    for (let px = 0; px < W; px++) {
+      const x = (px - cx) / sc;
+      const yVal = curveYReal(x, a, b);
+      if (yVal !== null && yVal < 10) {
+        const py = cy - sign * yVal * sc;
+        if (!started) { c.moveTo(px, py); started = true; } else c.lineTo(px, py);
+      } else { started = false; }
+    }
+    c.strokeStyle = C.accent; c.stroke();
+  });
+
+  // Draw addition if we have 2 points
+  if (addPoints.length >= 2) {
+    const [P, Q] = [addPoints[0], addPoints[1]];
+
+    // Line through P and Q
+    const dx = Q[0] - P[0];
+    let lam;
+    if (Math.abs(dx) < 1e-10) {
+      // Tangent (doubling)
+      lam = (3 * P[0] * P[0] + a) / (2 * P[1]);
+    } else {
+      lam = (Q[1] - P[1]) / (Q[0] - P[0]);
+    }
+    const intercept = P[1] - lam * P[0];
+
+    // Draw line
+    c.strokeStyle = hex2rgba(C.purple, 0.6); c.lineWidth = 1.5; c.setLineDash([6,4]);
+    c.beginPath();
+    c.moveTo(0, cy - (lam * ((0-cx)/sc) + intercept) * sc);
+    c.lineTo(W, cy - (lam * ((W-cx)/sc) + intercept) * sc);
+    c.stroke(); c.setLineDash([]);
+
+    // Third intersection: solve x^3 + ax + b - (lam*x + intercept)^2 = 0
+    // We know two roots: P[0] and Q[0], so third is lam^2 - P[0] - Q[0]
+    const x3 = lam*lam - P[0] - Q[0];
+    const y3line = lam * x3 + intercept;
+    const y3 = -y3line; // reflection
+
+    // Third intersection point (before reflection)
+    const rpx = cx + x3*sc, rpy = cy - y3line*sc;
+    c.fillStyle = hex2rgba(C.orange, 0.6);
+    c.beginPath(); c.arc(rpx, rpy, 5, 0, Math.PI*2); c.fill();
+
+    // Dashed line from third to reflected
+    c.strokeStyle = hex2rgba(C.green, 0.4); c.lineWidth = 1; c.setLineDash([3,3]);
+    c.beginPath(); c.moveTo(rpx, rpy); c.lineTo(rpx, cy - y3*sc); c.stroke(); c.setLineDash([]);
+
+    // Result point P+Q (reflected)
+    const rpx2 = cx + x3*sc, rpy2 = cy - y3*sc;
+    c.fillStyle = C.green;
+    c.beginPath(); c.arc(rpx2, rpy2, 8, 0, Math.PI*2); c.fill();
+    c.strokeStyle = '#fff'; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(rpx2, rpy2, 8, 0, Math.PI*2); c.stroke();
+
+    c.fillStyle = C.green; c.font = 'bold 12px sans-serif'; c.textAlign = 'left';
+    c.fillText('P + Q', rpx2+12, rpy2+4);
+
+    // Draw P
+    const ppx = cx + P[0]*sc, ppy = cy - P[1]*sc;
+    c.fillStyle = C.orange;
+    c.beginPath(); c.arc(ppx, ppy, 7, 0, Math.PI*2); c.fill();
+    c.fillStyle = C.orange; c.font = 'bold 12px sans-serif';
+    c.fillText('P', ppx+10, ppy-8);
+
+    // Draw Q
+    const qpx = cx + Q[0]*sc, qpy = cy - Q[1]*sc;
+    c.fillStyle = C.cyan;
+    c.beginPath(); c.arc(qpx, qpy, 7, 0, Math.PI*2); c.fill();
+    c.fillStyle = C.cyan;
+    c.fillText('Q', qpx+10, qpy-8);
+
+    document.getElementById('addInfo').innerHTML =
+      `<span style="color:${C.orange}">P = (${P[0].toFixed(2)}, ${P[1].toFixed(2)})</span> + ` +
+      `<span style="color:${C.cyan}">Q = (${Q[0].toFixed(2)}, ${Q[1].toFixed(2)})</span> = ` +
+      `<span style="color:${C.green}">P+Q = (${x3.toFixed(2)}, ${y3.toFixed(2)})</span>`;
+  } else if (addPoints.length === 1) {
+    const P = addPoints[0];
+    const ppx = cx + P[0]*sc, ppy = cy - P[1]*sc;
+    c.fillStyle = C.orange;
+    c.beginPath(); c.arc(ppx, ppy, 7, 0, Math.PI*2); c.fill();
+    c.fillStyle = C.orange; c.font = 'bold 12px sans-serif';
+    c.fillText('P', ppx+10, ppy-8);
+    document.getElementById('addInfo').innerHTML =
+      `<span style="color:${C.orange}">P = (${P[0].toFixed(2)}, ${P[1].toFixed(2)})</span> — click another point for Q`;
+  } else {
+    document.getElementById('addInfo').innerHTML = 'Click on the curve to place points. First click = P, second click = Q, then see P + Q.';
+  }
+}
+
+document.getElementById('addCanvas').addEventListener('click', function(e) {
+  const rect = this.getBoundingClientRect();
+  const px = e.clientX - rect.left, py = e.clientY - rect.top;
+  const cx = this.width/2, cy = this.height/2, sc = 55;
+  const x = (px - cx) / sc;
+  const yTop = -(py - cy) / sc;
+
+  // Snap to curve: compute actual y for this x
+  const yReal = curveYReal(x, ADD_CURVE_A, ADD_CURVE_B);
+  if (yReal === null) return;
+  // Choose closer y
+  const y = Math.abs(yTop - yReal) < Math.abs(yTop + yReal) ? yReal : -yReal;
+
+  if (addPoints.length >= 2) addPoints = [];
+  addPoints.push([x, y]);
+  drawAddCanvas();
+});
+document.getElementById('clearPointsBtn').addEventListener('click', () => { addPoints = []; drawAddCanvas(); });
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIZ 4: POINT DOUBLING
+═══════════════════════════════════════════════════════════════════════════ */
+let doublePoint = null;
+let showDouble = false;
+
+function drawDoubleCanvas() {
+  const cv = document.getElementById('doubleCanvas');
+  const c = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const cx = W/2, cy = H/2, sc = 55;
+  clearCanvas(c, C.bg);
+
+  const a = ADD_CURVE_A, b = ADD_CURVE_B;
+
+  // Grid + axes
+  c.strokeStyle = hex2rgba(C.border, 0.4); c.lineWidth = 0.5;
+  for (let i = -8; i <= 8; i++) {
+    c.beginPath(); c.moveTo(cx+i*sc, 0); c.lineTo(cx+i*sc, H); c.stroke();
+    c.beginPath(); c.moveTo(0, cy+i*sc); c.lineTo(W, cy+i*sc); c.stroke();
+  }
+  c.strokeStyle = C.border; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(0, cy); c.lineTo(W, cy); c.stroke();
+  c.beginPath(); c.moveTo(cx, 0); c.lineTo(cx, H); c.stroke();
+
+  // Curve
+  c.lineWidth = 2;
+  [1,-1].forEach(sign => {
+    c.beginPath(); let started = false;
+    for (let px = 0; px < W; px++) {
+      const x = (px-cx)/sc; const yV = curveYReal(x, a, b);
+      if (yV !== null && yV < 10) {
+        const py = cy - sign*yV*sc;
+        if (!started) { c.moveTo(px,py); started=true; } else c.lineTo(px,py);
+      } else started = false;
+    }
+    c.strokeStyle = C.accent; c.stroke();
+  });
+
+  if (doublePoint) {
+    const P = doublePoint;
+    const ppx = cx + P[0]*sc, ppy = cy - P[1]*sc;
+    c.fillStyle = C.orange;
+    c.beginPath(); c.arc(ppx, ppy, 7, 0, Math.PI*2); c.fill();
+    c.fillStyle = C.orange; c.font = 'bold 12px sans-serif'; c.textAlign = 'left';
+    c.fillText('P', ppx+10, ppy-8);
+
+    if (showDouble) {
+      // Tangent slope
+      const lam = (3*P[0]*P[0] + a) / (2*P[1]);
+      const intercept = P[1] - lam*P[0];
+
+      // Tangent line
+      c.strokeStyle = hex2rgba(C.purple, 0.6); c.lineWidth = 1.5; c.setLineDash([6,4]);
+      c.beginPath();
+      c.moveTo(0, cy - (lam*((0-cx)/sc)+intercept)*sc);
+      c.lineTo(W, cy - (lam*((W-cx)/sc)+intercept)*sc);
+      c.stroke(); c.setLineDash([]);
+
+      // 2P
+      const x3 = lam*lam - 2*P[0];
+      const y3line = lam*x3 + intercept;
+      const y3 = -y3line;
+
+      // Third intersection
+      const rpx = cx+x3*sc, rpy = cy-y3line*sc;
+      c.fillStyle = hex2rgba(C.orange,0.5);
+      c.beginPath(); c.arc(rpx, rpy, 5, 0, Math.PI*2); c.fill();
+
+      // Reflection
+      c.strokeStyle = hex2rgba(C.green,0.4); c.lineWidth=1; c.setLineDash([3,3]);
+      c.beginPath(); c.moveTo(rpx,rpy); c.lineTo(cx+x3*sc, cy-y3*sc); c.stroke(); c.setLineDash([]);
+
+      const rpx2 = cx+x3*sc, rpy2 = cy-y3*sc;
+      c.fillStyle = C.green;
+      c.beginPath(); c.arc(rpx2, rpy2, 8, 0, Math.PI*2); c.fill();
+      c.strokeStyle='#fff'; c.lineWidth=1.5;
+      c.beginPath(); c.arc(rpx2, rpy2, 8, 0, Math.PI*2); c.stroke();
+      c.fillStyle = C.green; c.font='bold 12px sans-serif';
+      c.fillText('2P', rpx2+12, rpy2+4);
+
+      document.getElementById('doubleInfo').innerHTML =
+        `<span style="color:${C.orange}">P = (${P[0].toFixed(2)}, ${P[1].toFixed(2)})</span> → ` +
+        `<span style="color:${C.green}">2P = (${x3.toFixed(2)}, ${y3.toFixed(2)})</span>` +
+        `   λ = ${lam.toFixed(3)}`;
+    }
+  }
+}
+
+document.getElementById('doubleCanvas').addEventListener('click', function(e) {
+  const rect = this.getBoundingClientRect();
+  const px = e.clientX-rect.left, py = e.clientY-rect.top;
+  const cx = this.width/2, cy = this.height/2, sc = 55;
+  const x = (px-cx)/sc, yTop = -(py-cy)/sc;
+  const yReal = curveYReal(x, ADD_CURVE_A, ADD_CURVE_B);
+  if (yReal === null) return;
+  const y = Math.abs(yTop-yReal) < Math.abs(yTop+yReal) ? yReal : -yReal;
+  doublePoint = [x,y]; showDouble = false;
+  drawDoubleCanvas();
+  document.getElementById('doubleInfo').innerHTML =
+    `<span style="color:${C.orange}">P = (${x.toFixed(2)}, ${y.toFixed(2)})</span> — press "Show Doubling"`;
+});
+document.getElementById('doubleBtn').addEventListener('click', () => { showDouble = true; drawDoubleCanvas(); });
+document.getElementById('clearDoubleBtn').addEventListener('click', () => { doublePoint = null; showDouble = false; drawDoubleCanvas(); });
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIZ 5: SCALAR MULTIPLICATION
+═══════════════════════════════════════════════════════════════════════════ */
+// SCALAR_P is on the curve y² = x³ + (-1)x + 1
+// Check: (-1)³ + (-1)(-1) + 1 = -1 + 1 + 1 = 1 = (1)² ✓
+const SCALAR_P = [-1, 1];
+
+function drawScalar() {
+  const n = parseInt(document.getElementById('scalarNSlider').value);
+  document.getElementById('scalarNVal').textContent = n;
+
+  const cv = document.getElementById('scalarCanvas');
+  const c = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  clearCanvas(c, C.bg);
+
+  const a = ADD_CURVE_A, b = ADD_CURVE_B;
+
+  // Compute nP using repeated addition (real-valued)
+  let points = [];
+  let current = [...SCALAR_P];
+  let hitInfinity = false;
+  points.push({pt: current, label: '1P'});
+  for (let i = 2; i <= n; i++) {
+    const P = SCALAR_P;
+    const Q = current;
+    const dx = Q[0] - P[0], dy = Q[1] - P[1];
+    let lam;
+    if (Math.abs(P[0]-Q[0]) < 1e-10 && Math.abs(P[1]-Q[1]) < 1e-10) {
+      lam = (3*P[0]*P[0]+a)/(2*P[1]);
+    } else if (Math.abs(P[0]-Q[0]) < 1e-10) {
+      hitInfinity = true; break;
+    } else {
+      lam = dy/dx;
+    }
+    const x3 = lam*lam - P[0] - Q[0];
+    const y3 = lam*(P[0]-x3) - P[1];
+    current = [x3, y3];
+    points.push({pt: current, label: `${i}P`});
+  }
+
+  // Determine bounds from all computed points
+  let xMin = -4, xMax = 4, yMin = -4, yMax = 4;
+  points.forEach(({pt}) => {
+    if (isFinite(pt[0]) && isFinite(pt[1])) {
+      xMin = Math.min(xMin, pt[0] - 1);
+      xMax = Math.max(xMax, pt[0] + 1);
+      yMin = Math.min(yMin, pt[1] - 1);
+      yMax = Math.max(yMax, pt[1] + 1);
+    }
+  });
+  // Keep aspect ratio
+  const margin = 50;
+  const plotW = W - 2*margin, plotH = H - 2*margin - 10;
+  const xRange = xMax - xMin, yRange = yMax - yMin;
+  const sc = Math.min(plotW / xRange, plotH / yRange);
+  const cx = margin + plotW/2, cy = margin + 10 + plotH/2;
+  // center on the midpoint of data
+  const dataCx = (xMin + xMax) / 2, dataCy = (yMin + yMax) / 2;
+
+  function toPixelX(x) { return cx + (x - dataCx) * sc; }
+  function toPixelY(y) { return cy - (y - dataCy) * sc; }
+
+  // Grid
+  c.strokeStyle = hex2rgba(C.border, 0.3); c.lineWidth = 0.5;
+  const gridStep = Math.pow(10, Math.floor(Math.log10(Math.max(xRange, yRange)/5)));
+  for (let gx = Math.floor(xMin/gridStep)*gridStep; gx <= xMax; gx += gridStep) {
+    const px = toPixelX(gx);
+    c.beginPath(); c.moveTo(px, margin); c.lineTo(px, H-margin); c.stroke();
+  }
+  for (let gy = Math.floor(yMin/gridStep)*gridStep; gy <= yMax; gy += gridStep) {
+    const py = toPixelY(gy);
+    c.beginPath(); c.moveTo(margin, py); c.lineTo(W-margin, py); c.stroke();
+  }
+
+  // Axes
+  c.strokeStyle = C.border; c.lineWidth = 1;
+  if (toPixelY(0) > margin && toPixelY(0) < H-margin) {
+    c.beginPath(); c.moveTo(margin, toPixelY(0)); c.lineTo(W-margin, toPixelY(0)); c.stroke();
+  }
+  if (toPixelX(0) > margin && toPixelX(0) < W-margin) {
+    c.beginPath(); c.moveTo(toPixelX(0), margin); c.lineTo(toPixelX(0), H-margin); c.stroke();
+  }
+
+  // Curve
+  c.lineWidth = 2;
+  [1,-1].forEach(sign => {
+    c.beginPath(); let started = false;
+    for (let px = margin; px < W-margin; px += 1) {
+      const x = dataCx + (px - cx) / sc;
+      const yV = curveYReal(x, a, b);
+      if (yV !== null && yV < yRange * 10) {
+        const py = toPixelY(sign * yV);
+        if (py > margin-20 && py < H-margin+20) {
+          if (!started) { c.moveTo(px,py); started=true; } else c.lineTo(px,py);
+        }
+      } else started = false;
+    }
+    c.strokeStyle = hex2rgba(C.accent, 0.35); c.stroke();
+  });
+
+  // Draw lines between successive additions (chord lines)
+  const colors = [C.orange, C.cyan, C.purple, C.green, C.red];
+  for (let i = 0; i < points.length-1; i++) {
+    const p1 = points[i].pt, p2 = points[i+1].pt;
+    const ppx1 = toPixelX(p1[0]), ppy1 = toPixelY(p1[1]);
+    const ppx2 = toPixelX(p2[0]), ppy2 = toPixelY(p2[1]);
+    c.strokeStyle = hex2rgba(colors[i%colors.length], 0.25); c.lineWidth = 1; c.setLineDash([4,3]);
+    c.beginPath(); c.moveTo(ppx1,ppy1); c.lineTo(ppx2,ppy2); c.stroke(); c.setLineDash([]);
+  }
+
+  // Draw all points
+  points.forEach(({pt, label}, i) => {
+    const ppx = toPixelX(pt[0]), ppy = toPixelY(pt[1]);
+    const col = i === points.length-1 ? C.green : (i===0 ? C.orange : hex2rgba(C.accent,0.8));
+    c.fillStyle = col;
+    const r = i === points.length-1 ? 8 : (i===0 ? 7 : 5);
+    c.beginPath(); c.arc(ppx, ppy, r, 0, Math.PI*2); c.fill();
+    // Label first, last, and every 5th point
+    if (i === 0 || i === points.length-1 || (i+1) % 5 === 0) {
+      c.fillStyle = col; c.font = 'bold 11px sans-serif'; c.textAlign = 'left';
+      c.fillText(label, ppx+12, ppy+4);
+    }
+  });
+
+  // Title
+  c.fillStyle = C.text; c.font = 'bold 13px sans-serif'; c.textAlign = 'left';
+  const lastPt = points[points.length-1].pt;
+  let title = `P = (${SCALAR_P[0]}, ${SCALAR_P[1]})  →  ${n}P = (${lastPt[0].toFixed(2)}, ${lastPt[1].toFixed(2)})`;
+  if (hitInfinity) title += '  [hit point at infinity]';
+  c.fillText(title, 15, 22);
+
+  // Verify points on curve label
+  c.fillStyle = hex2rgba(C.muted, 0.6); c.font = '10px sans-serif';
+  c.fillText('y² = x³ − x + 1   (all points verified on curve)', 15, 38);
+}
+
+document.getElementById('scalarNSlider').addEventListener('input', drawScalar);
+document.getElementById('scalarAnimBtn').addEventListener('click', function() {
+  let n = 1;
+  const maxN = parseInt(document.getElementById('scalarNSlider').value);
+  const slider = document.getElementById('scalarNSlider');
+  const interval = setInterval(() => {
+    if (n > maxN) { clearInterval(interval); return; }
+    slider.value = n;
+    drawScalar();
+    n++;
+  }, 400);
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIZ 6: TRAP DOOR (random-looking nG)
+═══════════════════════════════════════════════════════════════════════════ */
+function drawTrapDoor() {
+  const maxN = parseInt(document.getElementById('trapNSlider').value);
+  document.getElementById('trapNVal').textContent = maxN;
+
+  const cv = document.getElementById('trapCanvas');
+  const c = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  clearCanvas(c, C.bg);
+
+  // Use toy curve: p=211, a=0, b=2 (group order 199 = prime)
+  const p = 211, a = 0, b = 2;
+  const G = [4, 53];
+
+  const xCoords = [];
+  let R = G;
+  for (let i = 1; i <= maxN; i++) {
+    xCoords.push(R ? R[0] : 0);
+    R = ecAdd(R, G, a, p);
+  }
+
+  const margin = 40;
+  const plotW = W - 2*margin, plotH = H - 2*margin;
+
+  // Axes
+  c.strokeStyle = C.border; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(margin, H-margin); c.lineTo(W-margin, H-margin); c.stroke();
+  c.beginPath(); c.moveTo(margin, H-margin); c.lineTo(margin, margin); c.stroke();
+
+  c.fillStyle = C.muted; c.font = '11px sans-serif'; c.textAlign = 'center';
+  c.fillText('n', W/2, H-8);
+  c.save(); c.translate(12, H/2); c.rotate(-Math.PI/2); c.fillText('x-coordinate of nG',0,0); c.restore();
+
+  // Plot x coords
+  const xMin = 0, xMax = maxN;
+  const yMin = 0, yMax = p;
+  xCoords.forEach((xCoord, i) => {
+    const px = margin + (i/xMax)*plotW;
+    const py = (H-margin) - (xCoord/yMax)*plotH;
+    c.fillStyle = C.cyan;
+    c.beginPath(); c.arc(px, py, 4, 0, Math.PI*2); c.fill();
+  });
+
+  // Connect with faint lines
+  c.strokeStyle = hex2rgba(C.cyan, 0.15); c.lineWidth = 1;
+  c.beginPath();
+  xCoords.forEach((xCoord, i) => {
+    const px = margin + (i/xMax)*plotW;
+    const py = (H-margin) - (xCoord/yMax)*plotH;
+    if (i===0) c.moveTo(px,py); else c.lineTo(px,py);
+  });
+  c.stroke();
+
+  c.fillStyle = C.text; c.font = 'bold 12px sans-serif'; c.textAlign = 'left';
+  c.fillText(`G = (${G[0]}, ${G[1]}) over F₂₁₁`, 15, 20);
+  c.fillStyle = C.muted; c.font = '11px sans-serif';
+  c.fillText('Each dot = x-coord of nG. The sequence looks random — no visible pattern.', 15, 36);
+}
+
+document.getElementById('trapNSlider').addEventListener('input', drawTrapDoor);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIZ 7: TOY ECDSA DEMO
+═══════════════════════════════════════════════════════════════════════════ */
+const DEMO_P = 211, DEMO_A = 0, DEMO_B = 2; // y² = x³ + 2 over F_211, order = 199 (prime)
+let demoState = { G: null, order: 0, d: null, Q: null, msg: 42, k: null, sig: null, tampered: false };
+
+function findBasePoint() {
+  // Use a known base point on y² = x³ + 2 over F_211
+  // Group order is 199 (prime), so every non-identity point is a generator
+  demoState.G = [4, 53];
+  demoState.order = 199;
+}
+
+function demoLog(html) {
+  document.getElementById('demoOutput').innerHTML += html;
+  const el = document.getElementById('demoOutput');
+  el.scrollTop = el.scrollHeight;
+}
+
+function drawDemoCanvas(highlightR) {
+  const cv = document.getElementById('demoCanvas');
+  const c = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  clearCanvas(c, C.bg);
+
+  const p = DEMO_P, a = DEMO_A, b = DEMO_B;
+  const margin = 30;
+  const sz = Math.min((W-2*margin)/p, (H-2*margin)/p);
+  const ox = (W-p*sz)/2, oy = (H-p*sz)/2;
+
+  // All points
+  const pts = [];
+  for (let x = 0; x < p; x++) {
+    const rhs = mod(x*x*x+a*x+b, p);
+    for (let y = 0; y < p; y++) {
+      if (mod(y*y,p) === rhs) pts.push([x,y]);
+    }
+  }
+
+  // Draw all points dim
+  pts.forEach(([x,y]) => {
+    const px = ox+x*sz+sz/2, py = oy+(p-1-y)*sz+sz/2;
+    c.fillStyle = hex2rgba(C.accent, 0.2);
+    c.beginPath(); c.arc(px, py, Math.max(2, sz*0.25), 0, Math.PI*2); c.fill();
+  });
+
+  // Draw G
+  if (demoState.G) {
+    const [gx,gy] = demoState.G;
+    const px = ox+gx*sz+sz/2, py = oy+(p-1-gy)*sz+sz/2;
+    c.fillStyle = C.accent;
+    c.beginPath(); c.arc(px, py, 7, 0, Math.PI*2); c.fill();
+    c.fillStyle = C.text; c.font = 'bold 11px sans-serif'; c.textAlign = 'left';
+    c.fillText('G', px+10, py+4);
+  }
+
+  // Draw Q (public key)
+  if (demoState.Q) {
+    const [qx,qy] = demoState.Q;
+    const px = ox+qx*sz+sz/2, py = oy+(p-1-qy)*sz+sz/2;
+    c.fillStyle = C.green;
+    c.beginPath(); c.arc(px, py, 7, 0, Math.PI*2); c.fill();
+    c.fillStyle = C.green; c.font = 'bold 11px sans-serif';
+    c.fillText('Q', px+10, py+4);
+  }
+
+  // Draw kG point if signing
+  if (highlightR !== undefined && demoState.G) {
+    const kG = ecMul(highlightR, demoState.G, DEMO_A, DEMO_P);
+    if (kG) {
+      const [kx,ky] = kG;
+      const px = ox+kx*sz+sz/2, py = oy+(p-1-ky)*sz+sz/2;
+      c.fillStyle = C.purple;
+      c.beginPath(); c.arc(px, py, 7, 0, Math.PI*2); c.fill();
+      c.fillStyle = C.purple; c.font = 'bold 11px sans-serif';
+      c.fillText('kG', px+10, py+4);
+    }
+  }
+
+  // Info
+  c.fillStyle = C.text; c.font = 'bold 12px sans-serif'; c.textAlign = 'left';
+  c.fillText(`y² = x³ + ${a}x + ${b}  over  F_${p}   |   Order of G: ${demoState.order || '?'}`, 15, 20);
+}
+
+document.getElementById('demoGenerateBtn').addEventListener('click', function() {
+  findBasePoint();
+  const {G, order} = demoState;
+  // Pick random private key
+  demoState.d = 1 + Math.floor(Math.random() * (order - 2));
+  demoState.Q = ecMul(demoState.d, G, DEMO_A, DEMO_P);
+  demoState.sig = null;
+  demoState.tampered = false;
+
+  document.getElementById('demoOutput').innerHTML = '';
+  demoLog(`<p style="color:${C.accent};">═══ Key Generation ═══</p>`);
+  demoLog(`<p>Base point G = (${G[0]}, ${G[1]}), order n = ${order}</p>`);
+  demoLog(`<p style="color:${C.orange};">Private key d = ${demoState.d} <span style="color:${C.muted};">(keep secret!)</span></p>`);
+  demoLog(`<p style="color:${C.green};">Public key Q = d·G = (${demoState.Q[0]}, ${demoState.Q[1]})</p>`);
+  demoLog(`<p style="color:${C.muted};">────────────────────────</p>`);
+
+  document.getElementById('demoKeyStats').innerHTML =
+    `<div class="stat-chip">G order: <span>${order}</span></div>` +
+    `<div class="stat-chip">d = <span style="color:${C.orange}">${demoState.d}</span></div>` +
+    `<div class="stat-chip">Q = <span style="color:${C.green}">(${demoState.Q[0]}, ${demoState.Q[1]})</span></div>`;
+
+  drawDemoCanvas();
+});
+
+document.getElementById('demoSignBtn').addEventListener('click', function() {
+  if (!demoState.d) { alert('Generate keys first!'); return; }
+  const {G, order, d} = demoState;
+  const msg = parseInt(document.getElementById('demoMsgSlider').value);
+  demoState.msg = msg;
+  demoState.tampered = false;
+
+  // Pick random k
+  const k = 1 + Math.floor(Math.random() * (order - 2));
+  demoState.k = k;
+
+  const kG = ecMul(k, G, DEMO_A, DEMO_P);
+  const r = mod(kG[0], order);
+  const e = msg; // simplified: hash = message itself
+  const kInv = modInv(k, order);
+  const s = mod(kInv * (e + d * r), order);
+
+  demoState.sig = { r, s, k, kG };
+
+  document.getElementById('demoOutput').innerHTML = '';
+  demoLog(`<p style="color:${C.accent};">═══ Signing ═══</p>`);
+  demoLog(`<p>Message m = ${msg}  →  hash e = ${e}</p>`);
+  demoLog(`<p>Random nonce k = ${k} <span style="color:${C.muted};">(one-time, secret!)</span></p>`);
+  demoLog(`<p>Compute k·G = (${kG[0]}, ${kG[1]})</p>`);
+  demoLog(`<p>r = kG.x mod n = ${kG[0]} mod ${order} = <span style="color:${C.purple}">${r}</span></p>`);
+  demoLog(`<p>k⁻¹ mod n = ${kInv}</p>`);
+  demoLog(`<p>s = k⁻¹(e + d·r) mod n = ${kInv}·(${e} + ${d}·${r}) mod ${order}</p>`);
+  demoLog(`<p>s = ${kInv}·${mod(e + d*r, order)} mod ${order} = <span style="color:${C.purple}">${s}</span></p>`);
+  demoLog(`<p style="color:${C.purple};">Signature: (r, s) = (${r}, ${s})</p>`);
+  demoLog(`<p style="color:${C.muted};">────────────────────────</p>`);
+
+  drawDemoCanvas(k);
+});
+
+document.getElementById('demoVerifyBtn').addEventListener('click', function() {
+  if (!demoState.sig) { alert('Sign a message first!'); return; }
+  const {G, order, Q, msg, sig} = demoState;
+  const {r, s} = sig;
+  const verifyMsg = demoState.tampered ? msg + 1 : msg;
+  const e = verifyMsg;
+
+  const w = modInv(s, order);
+  const u1 = mod(e * w, order);
+  const u2 = mod(r * w, order);
+  const u1G = ecMul(u1, G, DEMO_A, DEMO_P);
+  const u2Q = ecMul(u2, Q, DEMO_A, DEMO_P);
+  const R = ecAdd(u1G, u2Q, DEMO_A, DEMO_P);
+  const x2 = R ? mod(R[0], order) : 0;
+
+  const valid = x2 === r;
+
+  document.getElementById('demoOutput').innerHTML = '';
+  demoLog(`<p style="color:${C.accent};">═══ Verification ═══</p>`);
+  demoLog(`<p>Message hash e = ${e} ${demoState.tampered ? '<span style="color:'+C.red+';">(TAMPERED!)</span>' : ''}</p>`);
+  demoLog(`<p>w = s⁻¹ mod n = ${w}</p>`);
+  demoLog(`<p>u₁ = e·w mod n = ${e}·${w} mod ${order} = ${u1}</p>`);
+  demoLog(`<p>u₂ = r·w mod n = ${r}·${w} mod ${order} = ${u2}</p>`);
+  demoLog(`<p>u₁·G = (${u1G ? u1G[0]+', '+u1G[1] : 'O'})</p>`);
+  demoLog(`<p>u₂·Q = (${u2Q ? u2Q[0]+', '+u2Q[1] : 'O'})</p>`);
+  demoLog(`<p>R = u₁G + u₂Q = (${R ? R[0]+', '+R[1] : 'O'})</p>`);
+  demoLog(`<p>x₂ mod n = ${x2}</p>`);
+  demoLog(`<p>Check: x₂ mod n == r?  ${x2} == ${r}?</p>`);
+  if (valid) {
+    demoLog(`<p style="color:${C.green};font-size:1.1rem;">✓ SIGNATURE VALID</p>`);
+  } else {
+    demoLog(`<p style="color:${C.red};font-size:1.1rem;">✗ SIGNATURE INVALID</p>`);
+  }
+
+  drawDemoCanvas();
+});
+
+document.getElementById('demoTamperBtn').addEventListener('click', function() {
+  if (!demoState.sig) { alert('Sign a message first!'); return; }
+  demoState.tampered = !demoState.tampered;
+  this.textContent = demoState.tampered ? 'Untamper' : 'Tamper Message';
+  this.style.borderColor = demoState.tampered ? C.red : '';
+  document.getElementById('demoOutput').innerHTML =
+    `<p style="color:${C.red};">Message has been ${demoState.tampered ? 'tampered' : 'restored'}! ` +
+    `Click Verify to see the result.</p>`;
+});
+
+document.getElementById('demoMsgSlider').addEventListener('input', function() {
+  document.getElementById('demoMsgVal').textContent = this.value;
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIZ 8: BRUTE FORCE VISUALIZATION
+═══════════════════════════════════════════════════════════════════════════ */
+let bruteState = { d: null, Q: null, G: null, order: 0, searching: false, tried: 0, timer: null };
+
+function initBrute() {
+  const p = 211, a = 0, b = 2;
+  // Known base point and prime order
+  bruteState.G = [4, 53];
+  bruteState.order = 199;
+  bruteState.d = 1 + Math.floor(Math.random()*(bruteState.order-2));
+  bruteState.Q = ecMul(bruteState.d, bruteState.G, a, p);
+  bruteState.tried = 0;
+  bruteState.searching = false;
+  if (bruteState.timer) clearInterval(bruteState.timer);
+  document.getElementById('bruteDVal').textContent = '?';
+  drawBrute();
+}
+
+function drawBrute() {
+  const cv = document.getElementById('bruteCanvas');
+  const c = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  clearCanvas(c, C.bg);
+
+  const {G, order, d, Q, tried} = bruteState;
+  const p = 211, a = 0, b = 2;
+  const margin = 40;
+  const plotW = W-2*margin, plotH = H-2*margin;
+
+  // Axes
+  c.strokeStyle = C.border; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(margin, H-margin); c.lineTo(W-margin, H-margin); c.stroke();
+  c.beginPath(); c.moveTo(margin, H-margin); c.lineTo(margin, margin); c.stroke();
+  c.fillStyle = C.muted; c.font = '11px sans-serif'; c.textAlign = 'center';
+  c.fillText('Candidate d', W/2, H-8);
+  c.save(); c.translate(12,H/2); c.rotate(-Math.PI/2); c.fillText('x-coord of d·G',0,0); c.restore();
+
+  // Target Q x-coordinate (red dashed line)
+  if (Q) {
+    const targetY = (H-margin) - (Q[0]/p)*plotH;
+    c.strokeStyle = C.red; c.lineWidth = 1.5; c.setLineDash([6,4]);
+    c.beginPath(); c.moveTo(margin,targetY); c.lineTo(W-margin,targetY); c.stroke();
+    c.setLineDash([]);
+    c.fillStyle = C.red; c.font = '10px sans-serif'; c.textAlign = 'right';
+    c.fillText(`Target: Q.x = ${Q[0]}`, W-margin, targetY-5);
+  }
+
+  // Tried candidates
+  const speed = parseInt(document.getElementById('bruteSpeedSlider').value);
+  const maxD = Math.min(tried, order);
+
+  for (let i = 1; i <= maxD; i++) {
+    const P = ecMul(i, G, a, p);
+    if (!P) continue;
+    const px = margin + (i/order)*plotW;
+    const py = (H-margin) - (P[0]/p)*plotH;
+    const found = i === d && tried >= d;
+    c.fillStyle = found ? C.green : hex2rgba(C.accent, 0.4);
+    c.beginPath(); c.arc(px, py, found ? 7 : 2.5, 0, Math.PI*2); c.fill();
+    if (found) {
+      c.fillStyle = C.green; c.font = 'bold 11px sans-serif'; c.textAlign = 'center';
+      c.fillText(`d = ${d}!`, px, py-12);
+    }
+  }
+
+  // Stats
+  c.fillStyle = C.text; c.font = 'bold 12px sans-serif'; c.textAlign = 'left';
+  c.fillText(`Searching for d where d·G = Q = (${Q?Q[0]:'?'}, ${Q?Q[1]:'?'})`, 15, 20);
+  c.fillStyle = C.muted; c.font = '11px sans-serif';
+  c.fillText(`Tried ${tried} / ${order} candidates`, 15, 36);
+}
+
+document.getElementById('bruteNewBtn').addEventListener('click', initBrute);
+document.getElementById('bruteRevealBtn').addEventListener('click', function() {
+  if (bruteState.d) document.getElementById('bruteDVal').textContent = bruteState.d;
+});
+document.getElementById('bruteStartBtn').addEventListener('click', function() {
+  if (bruteState.searching) { clearInterval(bruteState.timer); bruteState.searching = false; this.textContent = 'Start Search'; return; }
+  bruteState.searching = true;
+  this.textContent = 'Stop';
+  const speed = parseInt(document.getElementById('bruteSpeedSlider').value);
+  bruteState.timer = setInterval(() => {
+    bruteState.tried += speed;
+    if (bruteState.tried >= bruteState.d) {
+      bruteState.tried = bruteState.d;
+      clearInterval(bruteState.timer);
+      bruteState.searching = false;
+      document.getElementById('bruteStartBtn').textContent = 'Start Search';
+      document.getElementById('bruteDVal').textContent = bruteState.d;
+    }
+    drawBrute();
+  }, 50);
+});
+document.getElementById('bruteSpeedSlider').addEventListener('input', function() {
+  document.getElementById('bruteSpeedVal').textContent = this.value;
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════════════════════ */
+window.addEventListener('load', () => {
+  drawCurve();
+  drawFieldCurve();
+  drawAddCanvas();
+  drawDoubleCanvas();
+  drawScalar();
+  drawTrapDoor();
+  drawDemoCanvas();
+  initBrute();
+});
+</script>
+</body>
+</html>
